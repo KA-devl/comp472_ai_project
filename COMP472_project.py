@@ -184,8 +184,8 @@ class Coord:
 @dataclass(slots=True)
 class CoordPair:
     """Representation of a game move or a rectangular area via 2 Coords."""
-    src: Coord = field(default_factory=Coord) #source of the move
-    dst: Coord = field(default_factory=Coord) #destination of the move
+    src: Coord = field(default_factory=Coord)  # source of the move
+    dst: Coord = field(default_factory=Coord)  # destination of the move
 
     def to_string(self) -> str:
         """Text representation of a CoordPair."""
@@ -353,21 +353,21 @@ class Game:
         return False
 
     def is_valid_attack(self, coords: CoordPair) -> bool:
-        ##Validate if an attack move is valid
-        #Get the attacking unit and the defending unit
+        """Validate if an attack move is valid"""
+        # Get the attacking unit and the defending unit
         attacking_unit = self.get(coords.src)
         defending_unit = self.get(coords.dst)
-        #Check if defending unit is not adversarial unit, if so return false
-        if attacking_unit.is_same_team(defending_unit) == False:
+        # Check if defending unit is not adversarial unit, if so return false
+        if not attacking_unit.is_same_team(defending_unit):
             return True
         return False
 
-    def debug_trace (self, coords: CoordPair) -> bool:
-        ## display the current player with the move from src to dst
+    def debug_trace(self, coords: CoordPair) -> None:
+        """display the current player with the move from src to dst"""
         print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
-        ##display the compute time
+        # display the compute time
         print(f"Compute time: {self.options.max_time}")
-        ##display the current depth
+        # display the current depth
         print(f"Current depth: {self.options.max_depth}")
 
     def get_move_type(self, coords: CoordPair) -> MoveType:
@@ -391,41 +391,40 @@ class Game:
     def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         move_type = self.get_move_type(coords)
-        ##call debug_trace
+        # call debug_trace
         self.debug_trace(coords)
         if move_type == MoveType.MOVE:
             self.set(coords.dst, self.get(coords.src))
             self.set(coords.src, None)
             return True, ""
         if move_type == MoveType.ATTACK:
-            ##Get the attacking unit and the defending unit
+            # Get the attacking unit and the defending unit
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
-            ##Get the damage amount
+            # Get the damage amount
             damage_amount = attacking_unit.damage_amount(defending_unit)
-            print(f"Damage amount to source : {damage_amount}")
-            ##Modify the health of the defending unit
+            print(f"Damage amount: {damage_amount}")
+            # Modify the health of the defending unit
             self.mod_health(coords.dst, -damage_amount)
-            ##Modify the health of the attacking unit
+            # Modify the health of the attacking unit
             self.mod_health(coords.src, -damage_amount)
-            ##Print the health of both units
-            ##Check if the defending unit is dead
+            # Print the health of both units
+            # Check if the defending unit is dead
             if not defending_unit.is_alive():
                 self.set(coords.dst, None)
-            ##Check if the attacking unit is dead
+            # Check if the attacking unit is dead
             if not attacking_unit.is_alive():
                 self.set(coords.src, None)
-            ##check if both attacker and defender is alive before printing
-            if attacking_unit.is_alive() and defending_unit.is_alive():
-                print(f"Health of source : {self.get(coords.src).health}, Health of destination : {self.get(coords.dst).health}")
-            return True, "attacked"
+            print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
+            return True, "Attacked"
         if move_type == MoveType.SELF_DESTRUCT:
-            # TODO: Complete self-destruct
-            return True, "self-destructed"
+            self.set(coords.src, None)
+
+            return True, "Self-destructed"
         if move_type == MoveType.REPAIR:
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, "repaired"
-        return False, "invalid move"
+            return True, "Repaired"
+        return False, "Invalid Move"
 
     def next_turn(self):
         """Transitions game to the next turn."""
