@@ -184,8 +184,8 @@ class Coord:
 @dataclass(slots=True)
 class CoordPair:
     """Representation of a game move or a rectangular area via 2 Coords."""
-    src: Coord = field(default_factory=Coord)
-    dst: Coord = field(default_factory=Coord)
+    src: Coord = field(default_factory=Coord) #source of the move
+    dst: Coord = field(default_factory=Coord) #destination of the move
 
     def to_string(self) -> str:
         """Text representation of a CoordPair."""
@@ -346,15 +346,21 @@ class Game:
         return False
 
     def is_valid_attack(self, coords: CoordPair) -> bool:
-        """Validate if an attack move is valid  TODO: WRITE MISSING CODE"""
+        ##Validate if an attack move is valid
+        #Get the attacking unit and the defending unit
+        attacking_unit = self.get(coords.src)
+        defending_unit = self.get(coords.dst)
+        #Check if defending unit is not adversarial unit, if so return false
+        if attacking_unit.is_same_team(defending_unit) == False:
+            return True
         return False
 
     def get_move_type(self, coords: CoordPair) -> MoveType:
         """Returns move type from src and dst coordinates"""
+        print(f"Getting move type for {coords}")
         src_unit, dst_unit = self.get(coords.src), self.get(coords.dst)
         if src_unit is None or src_unit.player != self.next_player:
             return MoveType.INVALID
-
         if coords.src == coords.dst:
             return MoveType.SELF_DESTRUCT
         if dst_unit is None and self.is_valid_move(coords):
@@ -373,7 +379,23 @@ class Game:
             self.set(coords.src, None)
             return True, ""
         if move_type == MoveType.ATTACK:
-            # TODO: complete attack
+            ##Get the attacking unit and the defending unit
+            attacking_unit = self.get(coords.src)
+            defending_unit = self.get(coords.dst)
+            ##Get the damage amount
+            damage_amount = attacking_unit.damage_amount(defending_unit)
+            print(f"Damage amount: {damage_amount}")
+            ##Modify the health of the defending unit
+            self.mod_health(coords.dst, -damage_amount)
+            print(f"Defending unit health: {defending_unit.health}")
+            ##Modify the health of the attacking unit
+            self.mod_health(coords.src, -damage_amount)
+            ##Check if the defending unit is dead
+            if not defending_unit.is_alive():
+                self.set(coords.dst, None)
+            ##Check if the attacking unit is dead
+            if not attacking_unit.is_alive():
+                self.set(coords.src, None)
             return True, "attacked"
         if move_type == MoveType.SELF_DESTRUCT:
             # TODO: Complete self-destruct
