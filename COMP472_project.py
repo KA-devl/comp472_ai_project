@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from time import sleep
-from typing import Tuple, Iterable, ClassVar
+from typing import Tuple, Iterable, ClassVar, Optional, TextIO
 
 import requests
 
@@ -275,6 +275,7 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai: bool = True
     _defender_has_ai: bool = True
+    output_file: Optional[TextIO] = None
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -365,10 +366,30 @@ class Game:
     def debug_trace(self, coords: CoordPair) -> None:
         """display the current player with the move from src to dst"""
         print(f"Player {self.next_player.name} performed a new move -> from {coords.src} to {coords.dst}")
+        self.write_output(f"Player {self.next_player.name} performed a new move -> from {coords.src} to {coords.dst}\n")
         # display the compute time
         print(f"Compute time: {self.options.max_time}")
+        self.write_output(f"Compute time: {self.options.max_time}\n")
         # display the current depth
         print(f"Current depth: {self.options.max_depth}")
+        self.write_output(f"Current depth: {self.options.max_depth}\n")
+
+    def write_output(self, output: str) -> None:
+        """Write the output to the specified output file or sys.stdout."""
+        if self.output_file:
+            self.output_file.write(output)
+        else:
+            print(output, end='')
+
+    def start_logging(self, file_path: str) -> None:
+        """Open the output file for logging."""
+        self.output_file = open(file_path, 'w')
+
+    def stop_logging(self) -> None:
+        """Close the output file."""
+        if self.output_file:
+            self.output_file.close()
+            self.output_file = None
 
     def get_move_type(self, coords: CoordPair) -> MoveType:
         """Returns move type from src and dst coordinates"""
@@ -399,16 +420,19 @@ class Game:
             return True, ""
         if move_type == MoveType.ATTACK:
             print("!!!ATTACKED!!!")
+            self.write_output("!!!ATTACKED!!!\n")
             # Get the attacking unit and the defending unit
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
             # Get the damage amount
             damage_amount = attacking_unit.damage_amount(defending_unit)
             print(f"Damage amount: {damage_amount}")
-
+            self.write_output(f"Damage amount: {damage_amount}\n")
             self.mod_health(coords.dst, -damage_amount)
             self.mod_health(coords.src, -damage_amount)
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
+            self.write_output(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
+            self.write_output("==============================================\n")
             return True, "=============================================="
         if move_type == MoveType.SELF_DESTRUCT:
             for coord in coords.src.iter_range(1):
@@ -426,6 +450,8 @@ class Game:
         self.turns_played += 1
 
     def to_string(self) -> str:
+        print("==============================================")
+        self.write_output("==============================================\n")
         """Pretty text representation of the game."""
         dim = self.options.dim
         output = ""
@@ -450,6 +476,7 @@ class Game:
                 else:
                     output += f"{str(unit):^3} "
             output += "\n"
+        self.write_output(output)
         return output
 
     def __str__(self) -> str:
@@ -472,6 +499,7 @@ class Game:
                 return coords
             else:
                 print('Invalid coordinates! Try again.')
+                self.write_output('Invalid coordinates! Try again.\n')
 
     def human_turn(self):
         """Human player plays a move (or get via broker)."""
@@ -497,6 +525,7 @@ class Game:
                     break
                 else:
                     print("The move is not valid! Try again.")
+                    self.write_output("The move is not valid! Try again.\n")
 
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
@@ -625,6 +654,7 @@ class Game:
 ##############################################################################################################
 
 def main():
+
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
@@ -658,7 +688,8 @@ def main():
 
     # create a new game
     game = Game(options=options)
-
+    log_file_path = "game_log.txt"  # Modify this to the desired log file path
+    game.start_logging(log_file_path)
     # the main game loop
     while True:
         print()
@@ -682,7 +713,7 @@ def main():
                 print("Computer doesn't know what to do!!!")
                 exit(1)
 
-
+    game.stop_logging()
 ##############################################################################################################
 
 if __name__ == '__main__':
