@@ -358,13 +358,13 @@ class Game:
         attacking_unit = self.get(coords.src)
         defending_unit = self.get(coords.dst)
         # Check if defending unit is not adversarial unit, if so return false
-        if not attacking_unit.is_same_team(defending_unit):
+        if not attacking_unit.is_same_team(defending_unit) and coords.is_adjacent():
             return True
         return False
 
     def debug_trace(self, coords: CoordPair) -> None:
         """display the current player with the move from src to dst"""
-        print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
+        print(f"Player {self.next_player.name} performed a new move -> from {coords.src} to {coords.dst}")
         # display the compute time
         print(f"Compute time: {self.options.max_time}")
         # display the current depth
@@ -398,6 +398,7 @@ class Game:
             self.set(coords.src, None)
             return True, ""
         if move_type == MoveType.ATTACK:
+            print("!!!ATTACKED!!!")
             # Get the attacking unit and the defending unit
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
@@ -408,7 +409,7 @@ class Game:
             self.mod_health(coords.dst, -damage_amount)
             self.mod_health(coords.src, -damage_amount)
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
-            return True, "Attacked"
+            return True, "=============================================="
         if move_type == MoveType.SELF_DESTRUCT:
             for coord in coords.src.iter_range(1):
                 self.mod_health(coord, -2)
