@@ -543,6 +543,7 @@ class Game:
             move.dst = src
             yield move.clone()
 
+
     def random_move(self) -> Tuple[int, CoordPair | None, float]:
         """Returns a random move."""
         move_candidates = list(self.move_candidates())
