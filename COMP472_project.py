@@ -404,22 +404,15 @@ class Game:
             # Get the damage amount
             damage_amount = attacking_unit.damage_amount(defending_unit)
             print(f"Damage amount: {damage_amount}")
-            # Modify the health of the defending unit
+
             self.mod_health(coords.dst, -damage_amount)
-            # Modify the health of the attacking unit
             self.mod_health(coords.src, -damage_amount)
-            # Print the health of both units
-            # Check if the defending unit is dead
-            if not defending_unit.is_alive():
-                self.set(coords.dst, None)
-            # Check if the attacking unit is dead
-            if not attacking_unit.is_alive():
-                self.set(coords.src, None)
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
             return True, "Attacked"
         if move_type == MoveType.SELF_DESTRUCT:
-            self.set(coords.src, None)
-
+            for coord in coords.src.iter_range(1):
+                self.mod_health(coord, -2)
+            self.mod_health(coords.src, -9)
             return True, "Self-destructed"
         if move_type == MoveType.REPAIR:
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
