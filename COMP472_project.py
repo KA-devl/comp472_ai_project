@@ -355,9 +355,16 @@ class Game:
             return True
         return False
 
+    def debug_trace (self, coords: CoordPair) -> bool:
+        ## display the current player with the move from src to dst
+        print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
+        ##display the compute time
+        print(f"Compute time: {self.options.max_time}")
+        ##display the current depth
+        print(f"Current depth: {self.options.max_depth}")
+
     def get_move_type(self, coords: CoordPair) -> MoveType:
         """Returns move type from src and dst coordinates"""
-        print(f"Getting move type for {coords}")
         src_unit, dst_unit = self.get(coords.src), self.get(coords.dst)
         if src_unit is None or src_unit.player != self.next_player:
             return MoveType.INVALID
@@ -374,6 +381,8 @@ class Game:
     def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         move_type = self.get_move_type(coords)
+        ##call debug_trace
+        self.debug_trace(coords)
         if move_type == MoveType.MOVE:
             self.set(coords.dst, self.get(coords.src))
             self.set(coords.src, None)
@@ -477,7 +486,6 @@ class Game:
                 mv = self.read_move()
                 (success, result) = self.perform_move(mv)
                 if success:
-                    print(f"Player {self.next_player.name}: ", end='')
                     print(result)
                     self.next_turn()
                     break
