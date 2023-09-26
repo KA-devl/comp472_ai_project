@@ -21,7 +21,7 @@ class MoveType(Enum):
     ATTACK = 1
     REPAIR = 2
     SELF_DESTRUCT = 3
-    INVALID = None
+    INVALID = 4
 
 
 class UnitType(Enum):
@@ -205,6 +205,12 @@ class CoordPair:
             for col in range(self.src.col, self.dst.col + 1):
                 yield Coord(row, col)
 
+    def is_adjacent(self) -> bool:
+        """Check if the 2 Coords are 4-way adjacent."""
+        if (self.src.row == self.dst.row and abs(self.src.col - self.dst.col) == 1
+                or self.src.col == self.dst.col and abs(self.src.row - self.dst.row) == 1):
+            return True
+
     @classmethod
     def from_quad(cls, row0: int, col0: int, row1: int, col1: int) -> CoordPair:
         """Create a CoordPair from 4 integers."""
@@ -333,8 +339,6 @@ class Game:
 
     def is_valid_move(self, coords: CoordPair) -> bool:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
-        if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
-            return False
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
@@ -342,7 +346,10 @@ class Game:
         return unit is None
 
     def is_valid_repair(self, coords: CoordPair) -> bool:
-        """Validate if a repair move is valid  TODO: WRITE MISSING CODE"""
+        """Validate if a repair move is valid"""
+        src_unit, dst_unit = self.get(coords.src), self.get(coords.dst)
+        if src_unit.repair_amount(dst_unit) > 0 and coords.is_adjacent():
+            return True
         return False
 
     def is_valid_attack(self, coords: CoordPair) -> bool:
@@ -365,6 +372,9 @@ class Game:
 
     def get_move_type(self, coords: CoordPair) -> MoveType:
         """Returns move type from src and dst coordinates"""
+        if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
+            return MoveType.INVALID
+
         src_unit, dst_unit = self.get(coords.src), self.get(coords.dst)
         if src_unit is None or src_unit.player != self.next_player:
             return MoveType.INVALID
@@ -413,7 +423,7 @@ class Game:
             # TODO: Complete self-destruct
             return True, "self-destructed"
         if move_type == MoveType.REPAIR:
-            # TODO: Complete repair
+            self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
             return True, "repaired"
         return False, "invalid move"
 
