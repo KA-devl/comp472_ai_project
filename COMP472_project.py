@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import json
 import random
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -51,6 +52,17 @@ class GameType(Enum):
     AttackerVsComp = 1
     CompVsDefender = 2
     CompVsComp = 3
+
+    @staticmethod
+    def get_game_type(game_type: str) -> GameType:
+        if game_type == "attacker":
+            return GameType.AttackerVsComp
+        elif game_type == "defender":
+            return GameType.CompVsDefender
+        elif game_type == "manual":
+            return GameType.AttackerVsDefender
+        else:
+            return GameType.CompVsComp
 
 
 ##############################################################################################################
@@ -396,27 +408,29 @@ class Game:
         if move_type == MoveType.MOVE:
             self.set(coords.dst, self.get(coords.src))
             self.set(coords.src, None)
-            return True, ""
+            return True, f"Moved  from {coords.src} to {coords.dst}"
         if move_type == MoveType.ATTACK:
             # Get the attacking unit and the defending unit
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
             # Get the damage amount
             damage_amount = attacking_unit.damage_amount(defending_unit)
-            print(f"Damage amount: {damage_amount}")
 
             self.mod_health(coords.dst, -damage_amount)
             self.mod_health(coords.src, -damage_amount)
+            print(f"Damage amount: {damage_amount}")
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
-            return True, "Attacked"
+            return True, f"{attacking_unit} attacked {defending_unit}"
         if move_type == MoveType.SELF_DESTRUCT:
             for coord in coords.src.iter_range(1):
-                self.mod_health(coord, -2)
-            self.mod_health(coords.src, -9)
-            return True, "Self-destructed"
+                if coord == coords.src:
+                    self.mod_health(coords.src, -9)
+                else:
+                    self.mod_health(coord, -2)
+            return True, "Self-destructed " + str(coords.src)
         if move_type == MoveType.REPAIR:
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, "Repaired"
+            return True, f"{coords.src} repaired {coords.dst}"
         return False, "Invalid Move"
 
     def next_turn(self):
@@ -633,18 +647,8 @@ def main():
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
-    # parse the game type
-    if args.game_type == "attacker":
-        game_type = GameType.AttackerVsComp
-    elif args.game_type == "defender":
-        game_type = GameType.CompVsDefender
-    elif args.game_type == "manual":
-        game_type = GameType.AttackerVsDefender
-    else:
-        game_type = GameType.CompVsComp
-
     # set up game options
-    options = Options(game_type=game_type)
+    options = Options()
 
     # override class defaults via command line options
     if args.max_depth is not None:
@@ -653,6 +657,23 @@ def main():
         options.max_time = args.max_time
     if args.broker is not None:
         options.broker = args.broker
+
+    try:
+        with open('options.json', 'r') as f:
+            print("Loading options from options.json")
+            config_data = json.load(f)
+            options.dim = config_data.get('dim', options.dim)
+            options.max_depth = config_data.get('max_depth', options.max_depth)
+            options.min_depth = config_data.get('min_depth', options.min_depth)
+            options.max_time = config_data.get('max_time', options.max_time)
+            options.game_type = GameType.get_game_type(config_data.get('game_type', args.game_type))
+            options.alpha_beta = config_data.get('alpha_beta', options.alpha_beta)
+            options.max_turns = config_data.get('max_turns', options.max_turns)
+            options.randomize_moves = config_data.get('randomize_moves', options.randomize_moves)
+            options.broker = config_data.get('broker', options.broker)
+    except FileNotFoundError:
+        print("No options.json file found, using defaults.")
+        pass
 
     # create a new game
     game = Game(options=options)
