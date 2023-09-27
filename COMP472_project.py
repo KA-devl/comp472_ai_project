@@ -472,6 +472,8 @@ class Game:
         self.turns_played += 1
 
     def to_string(self) -> str:
+        print("==============================================")
+        self.write_output("==============================================\n")
         """Pretty text representation of the game."""
         dim = self.options.dim
         output = ""

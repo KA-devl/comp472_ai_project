@@ -1,3 +1,4 @@
+==============================================
 Next player: Attacker
 Turns played: 0
 
@@ -11,6 +12,7 @@ E:  .   .  aP9 aV9 aA9
 Player Attacker moved from E2 to D2
 Compute time: 5.0
 Current depth: 4
+==============================================
 Next player: Defender
 Turns played: 1
 
@@ -24,6 +26,7 @@ E:  .   .   .  aV9 aA9
 Player Defender moved from A2 to B2
 Compute time: 5.0
 Current depth: 4
+==============================================
 Next player: Attacker
 Turns played: 2
 
@@ -37,6 +40,7 @@ E:  .   .   .  aV9 aA9
 Player Attacker moved from D2 to C2
 Compute time: 5.0
 Current depth: 4
+==============================================
 Next player: Defender
 Turns played: 3
 
@@ -52,6 +56,7 @@ Compute time: 5.0
 Current depth: 4
 Damage amount: 1
 Health of attacker: 8, Health of victim: 8
+==============================================
 Next player: Attacker
 Turns played: 4
 
@@ -61,16 +66,19 @@ B: dT9 dP9 dF8  .   .
 C: dF9  .  aP8  .  aP9 
 D:  .   .   .  aF9 aV9 
 E:  .   .   .  aV9 aA9 
-----SELF DESTRUCT----
-Player Attacker moved from C2 to C2
+----ATTACK----
+Player Attacker moved from C2 to B2
 Compute time: 5.0
 Current depth: 4
+Damage amount: 1
+Health of attacker: 7, Health of victim: 7
+==============================================
 Next player: Defender
 Turns played: 5
 
     0   1   2   3   4  
 A: dA9 dT9  .   .   .  
-B: dT9 dP7 dF6  .   .  
-C: dF9  .   .   .  aP9 
-D:  .   .   .  aF7 aV9 
+B: dT9 dP9 dF7  .   .  
+C: dF9  .  aP7  .  aP9 
+D:  .   .   .  aF9 aV9 
 E:  .   .   .  aV9 aA9 
