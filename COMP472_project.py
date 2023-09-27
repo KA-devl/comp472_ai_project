@@ -352,11 +352,41 @@ class Game:
 
     def is_valid_move(self, coords: CoordPair) -> bool:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
+            return False
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
+        # match unit.type:
+        #     case UnitType.Program:
+        #         # print("AI move - ")
+
+        #         if unit.player == Player.Attacker:
+        #             # print(" Attacker")
+        #         else:
+        #             # print(" Defender")
+
+        # No movement restrictions on Viruses or Tech
+        if unit.type not in [UnitType.Virus, UnitType.Tech]:
+            # Verifying if the unit is engaged in combat
+            adjacentCoords = Coord.iter_adjacent(coords.src)
+
+            for adjacentCoord in adjacentCoords:
+                adjacentUnit = self.get(adjacentCoord)
+                if adjacentUnit is not None and adjacentUnit.player != unit.player:
+                    return False
+
+            # Validating move depending on the Player type
+            if unit.player == Player.Attacker:  # Attacker's AI, Firewall and Program can only go left or up
+                if coords.dst.col > coords.src.col or coords.dst.row > coords.src.row:
+                    return False
+            else:  # Defender's AI, Firewall and Program can only go right or down
+                if coords.dst.col < coords.src.col or coords.dst.row < coords.src.row:
+                    return False
+        #if destination is enemeny unit, then move is valid
+
         unit = self.get(coords.dst)
-        return unit is None
+        return (unit is None)
 
     def is_valid_repair(self, coords: CoordPair) -> bool:
         """Validate if a repair move is valid"""
@@ -423,47 +453,48 @@ class Game:
 
     def perform_move(self, coords: CoordPair) -> bool | tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
-        move_type = self.get_move_type(coords)
-        # call debug_trace
-        if move_type == MoveType.MOVE:
-            print("----MOVE----")
-            self.write_output("----MOVE----\n")
-            self.debug_trace(coords)
-            self.set(coords.dst, self.get(coords.src))
-            self.set(coords.src, None)
-            return True, ""
-        if move_type == MoveType.ATTACK:
-            print("----ATTACK----")
-            self.write_output("----ATTACK----\n")
-            self.debug_trace(coords)
-            # Get the attacking unit and the defending unit
-            attacking_unit = self.get(coords.src)
-            defending_unit = self.get(coords.dst)
-            # Get the damage amount
-            damage_amount = attacking_unit.damage_amount(defending_unit)
+        if self.is_valid_move(coords):
+            move_type = self.get_move_type(coords)
+            # call debug_trace
+            if move_type == MoveType.MOVE:
+                print("----MOVE----")
+                self.write_output("----MOVE----\n")
+                self.debug_trace(coords)
+                self.set(coords.dst, self.get(coords.src))
+                self.set(coords.src, None)
+                return True, ""
+            if move_type == MoveType.ATTACK:
+                print("----ATTACK----")
+                self.write_output("----ATTACK----\n")
+                self.debug_trace(coords)
+                # Get the attacking unit and the defending unit
+                attacking_unit = self.get(coords.src)
+                defending_unit = self.get(coords.dst)
+                # Get the damage amount
+                damage_amount = attacking_unit.damage_amount(defending_unit)
 
-            self.mod_health(coords.dst, -damage_amount)
-            self.mod_health(coords.src, -damage_amount)
-            print(f"Damage amount: {damage_amount}")
-            self.write_output(f"Damage amount: {damage_amount}\n")
-            print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
-            self.write_output(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
-            return True, ""
-        if move_type == MoveType.SELF_DESTRUCT:
-            print("----SELF DESTRUCT----")
-            self.write_output("----SELF DESTRUCT----\n")
-            self.debug_trace(coords)
-            for coord in coords.src.iter_range(1):
-                if coord == coords.src:
-                    self.mod_health(coords.src, -9)
-                else:
-                    self.mod_health(coord, -2)
-            return True, ""
-        if move_type == MoveType.REPAIR:
-            print("----REPAIR----")
-            self.debug_trace(coords)
-            self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, "!!!REPAIR!!!"
+                self.mod_health(coords.dst, -damage_amount)
+                self.mod_health(coords.src, -damage_amount)
+                print(f"Damage amount: {damage_amount}")
+                self.write_output(f"Damage amount: {damage_amount}\n")
+                print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
+                self.write_output(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
+                return True, ""
+            if move_type == MoveType.SELF_DESTRUCT:
+                print("----SELF DESTRUCT----")
+                self.write_output("----SELF DESTRUCT----\n")
+                self.debug_trace(coords)
+                for coord in coords.src.iter_range(1):
+                    if coord == coords.src:
+                        self.mod_health(coords.src, -9)
+                    else:
+                        self.mod_health(coord, -2)
+                return True, ""
+            if move_type == MoveType.REPAIR:
+                print("----REPAIR----")
+                self.debug_trace(coords)
+                self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
+                return True, "!!!REPAIR!!!"
         return False, "Invalid Move"
 
     def next_turn(self):
