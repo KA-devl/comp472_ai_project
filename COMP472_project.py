@@ -377,7 +377,6 @@ class Game:
 
     def debug_trace(self, coords: CoordPair) -> None:
         """display the current player with the move from src to dst"""
-        print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
         self.write_output(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}\n")
         # display the compute time
         print(f"Compute time: {self.options.max_time}")
@@ -431,7 +430,7 @@ class Game:
             self.debug_trace(coords)
             self.set(coords.dst, self.get(coords.src))
             self.set(coords.src, None)
-            return True, ""
+            return True, f"Moved  from {coords.src} to {coords.dst}"
         if move_type == MoveType.ATTACK:
             print("----ATTACK----")
             self.write_output("----ATTACK----\n")
@@ -440,15 +439,19 @@ class Game:
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
             # Get the damage amount
-            damage_amount = attacking_unit.damage_amount(defending_unit)
+            attack_damage_amount = attacking_unit.damage_amount(defending_unit)
+            defend_damage_amount = defending_unit.damage_amount(attacking_unit)
 
-            self.mod_health(coords.dst, -damage_amount)
-            self.mod_health(coords.src, -damage_amount)
-            print(f"Damage amount: {damage_amount}")
-            self.write_output(f"Damage amount: {damage_amount}\n")
+            self.mod_health(coords.dst, -attack_damage_amount)
+            self.mod_health(coords.src, -defend_damage_amount)
+            print(f"Damage amount from attacker: {attack_damage_amount}")
+            self.write_output(f"Damage amount from attacker: {attack_damage_amount}\n")
+            print(f"Damage amount from victim: {defend_damage_amount}")
+            self.write_output(f"Damage amount from victim: {defend_damage_amount}\n")
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
-            self.write_output(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
-            return True, ""
+            self.write_output(
+                f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
+            return True, f"{attacking_unit} attacked {defending_unit}"
         if move_type == MoveType.SELF_DESTRUCT:
             print("----SELF DESTRUCT----")
             self.write_output("----SELF DESTRUCT----\n")
@@ -458,12 +461,12 @@ class Game:
                     self.mod_health(coords.src, -9)
                 else:
                     self.mod_health(coord, -2)
-            return True, ""
+            return True, "Self-destructed " + str(coords.src)
         if move_type == MoveType.REPAIR:
             print("----REPAIR----")
             self.debug_trace(coords)
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, "!!!REPAIR!!!"
+            return True, f"{coords.src} repaired {coords.dst}"
         return False, "Invalid Move"
 
     def next_turn(self):
@@ -714,7 +717,7 @@ def main():
     # create a new game
     game = Game(options=options)
 
-    log_file_path = "game_trace.txt"  # TODO GENERATE FILE NAME WITH CURRENT PARAMETERS. Format : gameTrace-<b>-<t>-<m>.txt
+    log_file_path = f'game_trace-{options.alpha_beta}-{options.max_time}-{options.max_turns}.txt'
     game.start_logging(log_file_path)
     # the main game loop
     while True:
