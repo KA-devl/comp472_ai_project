@@ -419,9 +419,8 @@ class Game:
             self.set(coords.src, None)
             return True, ""
         if move_type == MoveType.ATTACK:
-            print("!!!ATTACKED!!!")
-            self.write_output("!!!ATTACKED!!!\n")
             # Get the attacking unit and the defending unit
+            self.write_output("!!!Attacked!!!\n")
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
             # Get the damage amount
@@ -432,17 +431,19 @@ class Game:
             self.mod_health(coords.src, -damage_amount)
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
             self.write_output(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
-            self.write_output("==============================================\n")
-            return True, "=============================================="
+            return True, "!!!Attacked!!!"
         if move_type == MoveType.SELF_DESTRUCT:
+            self.write_output("!!!Self-destructed!!!\n")
             for coord in coords.src.iter_range(1):
                 self.mod_health(coord, -2)
             self.mod_health(coords.src, -9)
-            return True, "Self-destructed"
+            return True, "!!!Self-destructed!!!"
         if move_type == MoveType.REPAIR:
+            self.write_output("!!!Repaired!!!\n")
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, "Repaired"
-        return False, "Invalid Move"
+            return True, "!!!Repaired!!!"
+        self.write_output("!!!Invalid Move!!!\n")
+        return False, "!!!Invalid Move!!!"
 
     def next_turn(self):
         """Transitions game to the next turn."""
@@ -688,7 +689,7 @@ def main():
 
     # create a new game
     game = Game(options=options)
-    log_file_path = "game_log.txt"  # Modify this to the desired log file path
+    log_file_path = "game_trace.txt"  #TODO GENERATE FILE NAME WITH CURRENT PARAMETERS. Format : gameTrace-<b>-<t>-<m>.txt
     game.start_logging(log_file_path)
     # the main game loop
     while True:
