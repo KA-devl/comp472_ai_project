@@ -698,6 +698,7 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins in {game.turns_played} turns")
+            game.write_output(f"{winner.name} wins in {game.turns_played} turns\n")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
