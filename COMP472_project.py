@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from time import sleep
-from typing import Tuple, Iterable, ClassVar
+from typing import Tuple, Iterable, ClassVar, Optional, TextIO
 
 import requests
 
@@ -287,6 +287,7 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai: bool = True
     _defender_has_ai: bool = True
+    output_file: Optional[TextIO] = None
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -370,17 +371,37 @@ class Game:
         attacking_unit = self.get(coords.src)
         defending_unit = self.get(coords.dst)
         # Check if defending unit is not adversarial unit, if so return false
-        if not attacking_unit.is_same_team(defending_unit):
+        if not attacking_unit.is_same_team(defending_unit) and coords.is_adjacent():
             return True
         return False
 
     def debug_trace(self, coords: CoordPair) -> None:
         """display the current player with the move from src to dst"""
         print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
+        self.write_output(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}\n")
         # display the compute time
         print(f"Compute time: {self.options.max_time}")
+        self.write_output(f"Compute time: {self.options.max_time}\n")
         # display the current depth
         print(f"Current depth: {self.options.max_depth}")
+        self.write_output(f"Current depth: {self.options.max_depth}\n")
+
+    def start_logging(self, file_path: str) -> None:
+        """Open the output file for logging."""
+        self.output_file = open(file_path, 'w')
+
+    def stop_logging(self) -> None:
+        """Close the output file."""
+        if self.output_file:
+            self.output_file.close()
+            self.output_file = None
+
+    def write_output(self, output: str) -> None:
+        """Write the output to the specified output file or sys.stdout."""
+        if self.output_file:
+            self.output_file.write(output)
+        else:
+            print(output, end='')
 
     def get_move_type(self, coords: CoordPair) -> MoveType:
         """Returns move type from src and dst coordinates"""
@@ -400,16 +421,21 @@ class Game:
             return MoveType.ATTACK
         return MoveType.INVALID
 
-    def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
+    def perform_move(self, coords: CoordPair) -> bool | tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         move_type = self.get_move_type(coords)
         # call debug_trace
-        self.debug_trace(coords)
         if move_type == MoveType.MOVE:
+            print("----MOVE----")
+            self.write_output("----MOVE----\n")
+            self.debug_trace(coords)
             self.set(coords.dst, self.get(coords.src))
             self.set(coords.src, None)
-            return True, f"Moved  from {coords.src} to {coords.dst}"
+            return True, ""
         if move_type == MoveType.ATTACK:
+            print("----ATTACK----")
+            self.write_output("----ATTACK----\n")
+            self.debug_trace(coords)
             # Get the attacking unit and the defending unit
             attacking_unit = self.get(coords.src)
             defending_unit = self.get(coords.dst)
@@ -419,18 +445,25 @@ class Game:
             self.mod_health(coords.dst, -damage_amount)
             self.mod_health(coords.src, -damage_amount)
             print(f"Damage amount: {damage_amount}")
+            self.write_output(f"Damage amount: {damage_amount}\n")
             print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
-            return True, f"{attacking_unit} attacked {defending_unit}"
+            self.write_output(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
+            return True, ""
         if move_type == MoveType.SELF_DESTRUCT:
+            print("----SELF DESTRUCT----")
+            self.write_output("----SELF DESTRUCT----\n")
+            self.debug_trace(coords)
             for coord in coords.src.iter_range(1):
                 if coord == coords.src:
                     self.mod_health(coords.src, -9)
                 else:
                     self.mod_health(coord, -2)
-            return True, "Self-destructed " + str(coords.src)
+            return True, ""
         if move_type == MoveType.REPAIR:
+            print("----REPAIR----")
+            self.debug_trace(coords)
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, f"{coords.src} repaired {coords.dst}"
+            return True, "!!!REPAIR!!!"
         return False, "Invalid Move"
 
     def next_turn(self):
@@ -439,6 +472,8 @@ class Game:
         self.turns_played += 1
 
     def to_string(self) -> str:
+        print("==============================================")
+        self.write_output("==============================================\n")
         """Pretty text representation of the game."""
         dim = self.options.dim
         output = ""
@@ -463,6 +498,7 @@ class Game:
                 else:
                     output += f"{str(unit):^3} "
             output += "\n"
+        self.write_output(output)
         return output
 
     def __str__(self) -> str:
@@ -678,6 +714,8 @@ def main():
     # create a new game
     game = Game(options=options)
 
+    log_file_path = "game_trace.txt"  # TODO GENERATE FILE NAME WITH CURRENT PARAMETERS. Format : gameTrace-<b>-<t>-<m>.txt
+    game.start_logging(log_file_path)
     # the main game loop
     while True:
         print()
@@ -685,6 +723,7 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            game.write_output(f"{winner.name} wins in {game.turns_played} turns\n")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -701,7 +740,7 @@ def main():
                 print("Computer doesn't know what to do!!!")
                 exit(1)
 
-
+    game.stop_logging()
 ##############################################################################################################
 
 if __name__ == '__main__':
