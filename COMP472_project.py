@@ -464,6 +464,7 @@ class Game:
             return True, "Self-destructed " + str(coords.src)
         if move_type == MoveType.REPAIR:
             print("----REPAIR----")
+            self.write_output("----REPAIR----\n")
             self.debug_trace(coords)
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
             return True, f"{coords.src} repaired {coords.dst}"
