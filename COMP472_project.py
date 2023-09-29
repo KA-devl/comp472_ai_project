@@ -351,12 +351,30 @@ class Game:
             self.remove_dead(coord)
 
     def is_valid_move(self, coords: CoordPair) -> bool:
-        """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """Validate a move expressed as a CoordPair."""
         unit = self.get(coords.src)
-        if unit is None or unit.player != self.next_player:
+        if unit is None or unit.player != self.next_player or self.get(coords.dst) is not None:
             return False
-        unit = self.get(coords.dst)
-        return unit is None
+
+        row_delta = coords.src.row - coords.dst.row
+        col_delta = coords.src.col - coords.dst.col
+        if unit.type in [UnitType.AI, UnitType.Program, UnitType.Firewall]:
+            # cant attack in combat
+            for coord in coords.src.iter_adjacent():
+                if self.get(coord) is not None and self.get(coord).player != self.next_player:
+                    return False
+
+            if unit.player == Player.Attacker:
+                if row_delta == 1 and col_delta == 0 or col_delta == 1 and row_delta == 0:
+                    return True
+            elif unit.player == Player.Defender:
+                if row_delta == -1 and col_delta == 0 or col_delta == -1 and row_delta == 0:
+                    return True
+        elif unit.type in [UnitType.Tech, UnitType.Virus]:
+            if abs(row_delta) == 1 and col_delta == 0 or abs(col_delta) == 1 and row_delta == 0:
+                return True
+
+        return False
 
     def is_valid_repair(self, coords: CoordPair) -> bool:
         """Validate if a repair move is valid"""
@@ -414,14 +432,14 @@ class Game:
             return MoveType.SELF_DESTRUCT
         if dst_unit is None and self.is_valid_move(coords):
             return MoveType.MOVE
-        if src_unit.is_same_team(dst_unit) and self.is_valid_repair(coords):
+        if dst_unit is not None and src_unit.is_same_team(dst_unit) and self.is_valid_repair(coords):
             return MoveType.REPAIR
-        if not src_unit.is_same_team(dst_unit) and self.is_valid_attack(coords):
+        if dst_unit is not None and not src_unit.is_same_team(dst_unit) and self.is_valid_attack(coords):
             return MoveType.ATTACK
         return MoveType.INVALID
 
     def perform_move(self, coords: CoordPair) -> bool | tuple[bool, str]:
-        """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """Validate and perform a move expressed as a CoordPair."""
         move_type = self.get_move_type(coords)
         # call debug_trace
         if move_type == MoveType.MOVE:
@@ -464,6 +482,7 @@ class Game:
             return True, "Self-destructed " + str(coords.src)
         if move_type == MoveType.REPAIR:
             print("----REPAIR----")
+            self.write_output("----REPAIR----\n")
             self.debug_trace(coords)
             self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
             return True, f"{coords.src} repaired {coords.dst}"
