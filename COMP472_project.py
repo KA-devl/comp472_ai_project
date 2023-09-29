@@ -395,7 +395,6 @@ class Game:
 
     def debug_trace(self, coords: CoordPair) -> None:
         """display the current player with the move from src to dst"""
-        print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
         self.write_output(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}\n")
         # display the compute time
         print(f"Compute time: {self.options.max_time}")
@@ -440,7 +439,7 @@ class Game:
         return MoveType.INVALID
 
     def perform_move(self, coords: CoordPair) -> bool | tuple[bool, str]:
-        """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """Validate and perform a move expressed as a CoordPair."""
         move_type = self.get_move_type(coords)
         # call debug_trace
         if move_type == MoveType.MOVE:
@@ -737,7 +736,7 @@ def main():
     # create a new game
     game = Game(options=options)
 
-    log_file_path = "game_trace.txt"  # TODO GENERATE FILE NAME WITH CURRENT PARAMETERS. Format : gameTrace-<b>-<t>-<m>.txt
+    log_file_path = f'game_trace-{options.alpha_beta}-{options.max_time}-{options.max_turns}.txt'
     game.start_logging(log_file_path)
     # the main game loop
     while True:
