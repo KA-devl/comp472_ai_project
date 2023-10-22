@@ -275,8 +275,8 @@ class Options:
     max_depth: int | None = 4
     min_depth: int | None = 2
     max_time: float | None = 5.0
-    game_type: GameType = GameType.AttackerVsDefender
-    alpha_beta: bool = True
+    game_type: GameType = GameType.AttackerVsComp
+    alpha_beta: bool = False #TO-DO
     max_turns: int | None = 100
     randomize_moves: bool = True
     broker: str | None = None
@@ -427,8 +427,9 @@ class Game:
                 self.self_destruct(coords.src)
                 ##If the game is not cloned, then we can print the game
                 if not is_game_clone:
-                    text_trace += f"Self-destruct at {coords.src}\n{self}\n\n"
+                    text_trace += f"SELF DESTRUCTION at {coords.src}\n{self}\n\n"
                     print(text_trace)
+                    self.write_output(text_trace)
                 return (True, "")
             ## MOVE
             elif destination is None:
@@ -436,8 +437,9 @@ class Game:
                 self.set(coords.src, None)
                 ##If the game is not cloned, then we can print the game
                 if not is_game_clone:
-                    text_trace += f"Move from : {coords.src} to {coords.dst}\n{self}\n\n"
+                    text_trace += f"MOVE from : {coords.src} to {coords.dst}\n{self}\n\n"
                     print(text_trace)
+                    self.write_output(text_trace)
                 return (True, "")
             ## ATTACK
             elif source.player != destination.player:
@@ -448,6 +450,7 @@ class Game:
                 if not is_game_clone:
                     text_trace += f"Attack from : {coords.src} to {coords.dst}\n{self}\n\n"
                     print(text_trace)
+                    self.write_output(text_trace)
                 return (True, "")
             # case: action is repair
             else:
@@ -492,6 +495,24 @@ class Game:
 
         return attacker_potential_damage - defender_potential_damage
 ######################################################################################################################################
+    def start_logging(self, file_path: str) -> None:
+        """Open the output file for logging."""
+        self.output_file = open(file_path, 'w')
+
+    def stop_logging(self) -> None:
+        """Close the output file."""
+        if self.output_file:
+            self.output_file.close()
+            self.output_file = None
+
+    def write_output(self, output: str) -> None:
+        """Write the output to the specified output file or sys.stdout."""
+        if self.output_file:
+            self.output_file.write(output)
+        else:
+            print(output, end='')
+
+
     def next_turn(self):
         """Transitions game to the next turn."""
         self.next_player = self.next_player.next()
@@ -580,8 +601,9 @@ class Game:
         if mv is not None:
             (success, result) = self.perform_move(mv, is_game_clone)
             if success:
-                print(f"Computer {self.next_player.name}: ", end='')
+                print(f"---- Computer {self.next_player.name} ---- ", end='')
                 print(result)
+                self.write_output(f"Computer {self.next_player.name}: {result}\n")
                 self.next_turn()
         return mv
 
@@ -629,7 +651,7 @@ class Game:
             return 0, None, 0
 
     def evaluate(self, heuristic_type: str) -> int:
-        """Evaluate the board state using the given heuristic. Currently only support e0. TODO: add support for e1 and e2"""
+        """Evaluate the board state using the specified heuristic."""
         heuristic_value = 0
         if heuristic_type == 'e0':
             # For Attacker
@@ -661,7 +683,7 @@ class Game:
 
     def minimax(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
                 max_time: float) -> Tuple[int, CoordPair | None]:
-        """minimax recursive algorithm with alpha-beta pruning."""
+        """minimax algorithm"""
         is_game_clone = True
         current_elapsed_time = (datetime.now() - start_time).total_seconds()
 
@@ -719,26 +741,32 @@ class Game:
 
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax OR alpha-beta pruning."""
-        max_depth = int(self.options.max_depth)
         max_time = self.options.max_time
         start_time = datetime.now()
-        ##Add conditions to check algorithm aka if alphabeta or minimax
-        score, move = self.minimax(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
+        max_depth = int(self.options.max_depth)
+        if self.options.alpha_beta:
+            print("CALL ALPHA-BETA")
+        else:
+            score, move = self.minimax(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
                                    start_time, max_time)  # Attacker will always be the initial maximizer
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
 
         print(f"Heuristic score: {score}")
+        self.write_output(f"Heuristic score: {score}\n")
         print(f"Evals per depth: ", end='')
+        self.write_output(f"Evals per depth: ")
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ", end='')
         print()
         total_evals = sum(self.stats.evaluations_per_depth.values())
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals / self.stats.total_seconds / 1000:0.1f}k/s")
+            self.write_output(f"Eval perf.: {total_evals / self.stats.total_seconds / 1000:0.1f}k/s\n")
 
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        self.write_output(f"Elapsed time: {elapsed_seconds:0.1f}s\n")
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -836,6 +864,7 @@ def main():
     game = Game(options=options)
 
     log_file_path = f'game_trace-{options.alpha_beta}-{options.max_time}-{options.max_turns}.txt'
+    game.start_logging(log_file_path)
     # the main game loop
     while True:
         print()
@@ -843,6 +872,7 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            game.write_output(f"{winner.name} wins in {game.turns_played} turns\n")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -859,7 +889,7 @@ def main():
                 print("Computer doesn't know what to do!!!")
                 exit(1)
 
-
+    game.stop_logging()
 ##############################################################################################################
 
 if __name__ == '__main__':
