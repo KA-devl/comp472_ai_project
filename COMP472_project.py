@@ -451,7 +451,7 @@ class Game:
                     print(text_trace)
                     self.write_output(text_trace)
                 return True, ""
-            # case: action is repair
+            ## REPAIR
             else:
                 health_amount = source.repair_amount(destination)
                 if health_amount == 0:
@@ -462,7 +462,7 @@ class Game:
                 return True, ""
         return False, "invalid move"
 
-    def get_unit_count(self, player: Player, unit_type: UnitType) -> int:  # for e0
+    def get_unit_count(self, player: Player, unit_type: UnitType) -> int:
         """Returns the count of a specific unit type for a given player."""
         count = 0
         for _, unit in self.player_units(player):
@@ -470,7 +470,7 @@ class Game:
                 count += 1
         return count
 
-    def get_aggregate_health(self, player: Player):  # for e1
+    def get_aggregate_health(self, player: Player):
         """Get the health difference of the player's units"""
         total_health = 0
         for _, unit in self.player_units(player):
@@ -480,8 +480,8 @@ class Game:
                 total_health += unit.health
         return total_health
 
-    def get_potential_damage_delta(self):  # for e1
-        """Calculate the potential damage one type of adversary can inflict on the other"""
+    def get_potential_damage_delta(self):
+        """Calculate the potential damage one type of adversary can inflict on the other (THIS IS FOR e1)"""
         attacker_potential_damage = 0
         for _, unit in self.player_units(Player.Attacker):
             for _, opp_unit in self.player_units(Player.Defender):
@@ -649,30 +649,33 @@ class Game:
         else:
             return 0, None, 0
 
-    def evaluate(self, heuristic_type: str) -> int:
-        """Evaluate the board state using the specified heuristic."""
+    def evaluate_with_heuristic(self, heuristic_type: str) -> int:
+        """Evaluate the game board using heuristrics"""
         heuristic_value = 0
+        ##Use this for demo
         if heuristic_type == 'e0':
-            # For Attacker
-            vp_attacker = self.get_unit_count(Player.Attacker, UnitType.Virus)
-            tp_attacker = self.get_unit_count(Player.Attacker, UnitType.Tech)
-            fp_attacker = self.get_unit_count(Player.Attacker, UnitType.Firewall)
-            pp_attacker = self.get_unit_count(Player.Attacker, UnitType.Program)
-            ai_attacker = self.get_unit_count(Player.Attacker, UnitType.AI)
-            # For Defender
-            vp_defender = self.get_unit_count(Player.Defender, UnitType.Virus)
-            tp_defender = self.get_unit_count(Player.Defender, UnitType.Tech)
-            fp_defender = self.get_unit_count(Player.Defender, UnitType.Firewall)
-            pp_defender = self.get_unit_count(Player.Defender, UnitType.Program)
-            ai_defender = self.get_unit_count(Player.Defender, UnitType.AI)
+            # Player 1 (Attacker)
+            VP_P1 = self.get_unit_count(Player.Attacker, UnitType.Virus)
+            TP_P1 = self.get_unit_count(Player.Attacker, UnitType.Tech)
+            FP_P1 = self.get_unit_count(Player.Attacker, UnitType.Firewall)
+            PP_P1 = self.get_unit_count(Player.Attacker, UnitType.Program)
+            AI_P1 = self.get_unit_count(Player.Attacker, UnitType.AI)
+            # Player 2 (Defender)
+            VP_P2 = self.get_unit_count(Player.Defender, UnitType.Virus)
+            TP_P2 = self.get_unit_count(Player.Defender, UnitType.Tech)
+            FP_P2 = self.get_unit_count(Player.Defender, UnitType.Firewall)
+            PP_P2 = self.get_unit_count(Player.Defender, UnitType.Program)
+            AI_P2 = self.get_unit_count(Player.Defender, UnitType.AI)
 
+            ##Heuristic given in the assignment
             heuristic_value = (
-                    ((3 * vp_attacker) + (3 * tp_attacker) + (3 * fp_attacker) + (3 * pp_attacker) + (
-                            9999 * ai_attacker)) -
-                    ((3 * vp_defender) + (3 * tp_defender) + (3 * fp_defender) + (3 * pp_defender) + (
-                            9999 * ai_defender))
+                    ((3 * VP_P1) + (3 * TP_P1) + (3 * FP_P1) + (3 * PP_P1) + (
+                            9999 * AI_P1)) -
+                    ((3 * VP_P2) + (3 * TP_P2) + (3 * FP_P2) + (3 * PP_P2) + (
+                            9999 * AI_P2))
             )
         elif heuristic_type == 'e1':
+            #Basically this heuristic is the difference between the aggregate health of the attacker and the defender
             aggregate_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
                 Player.Defender)
             potential_damage_delta = self.get_potential_damage_delta()
@@ -693,10 +696,10 @@ class Game:
             elif self.has_winner() == Player.Defender:
                 return MIN_HEURISTIC_SCORE, None
         elif depth == 0 or current_elapsed_time > max_time:
-            return self.evaluate('e1'), None
+            return self.evaluate_with_heuristic('e0'), None
 
         best_move = None
-        if maximizing_player:  # for the maximizing player
+        if maximizing_player:
             max_eval = float('-inf')
             for move in self.move_candidates():
                 game_clone = self.clone()
