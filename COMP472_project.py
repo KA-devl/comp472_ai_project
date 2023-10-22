@@ -217,13 +217,11 @@ class CoordPair:
             for col in range(self.src.col, self.dst.col + 1):
                 yield Coord(row, col)
 
-
-###################### HELPERS ##################################
+    ###################### HELPERS ##################################
     def is_left_top(self) -> bool:  # helper function for is_valid_move()
         """Checks whether dst coord is at the top and left of src coord"""
         return (self.dst.row < self.src.row and self.dst.col == self.src.col) or \
             (self.dst.row == self.src.row and self.dst.col < self.src.col)
-
 
     def is_adjacent(self) -> bool:
         """Check if the 2 Coords are 4-way adjacent."""
@@ -237,6 +235,7 @@ class CoordPair:
         if self.src.row != self.dst.row and self.src.col != self.dst.col:
             return True
         return False
+
     ##################################################################################
 
     @classmethod
@@ -276,7 +275,7 @@ class Options:
     min_depth: int | None = 2
     max_time: float | None = 5.0
     game_type: GameType = GameType.AttackerVsComp
-    alpha_beta: bool = False #TO-DO
+    alpha_beta: bool = False  # TO-DO
     max_turns: int | None = 100
     randomize_moves: bool = True
     broker: str | None = None
@@ -395,11 +394,11 @@ class Game:
         if unit.type.name in {"Virus", "Tech"}:
             return True
         # Rules for program/ai/firewall
-        ##Checks if in combat
+        # Checks if in combat
         is_in_combat = self.is_in_combat(coords.src)
-        ##Checks if destination is empty
+        # Checks if destination is empty
         is_empty_destination = self.get(coords.dst) is None
-        ##Check if can only perform up or left
+        # Check if can only perform up or left
         up_or_left = coords.is_left_top()
         if unit.player == Player.Attacker:
             if is_empty_destination and (is_in_combat or not up_or_left):
@@ -422,26 +421,26 @@ class Game:
             text_trace = ""
             source = self.get(coords.src)
             destination = self.get(coords.dst)
-            ## SELF-DESTRUCT
+            # SELF-DESTRUCT
             if source == destination:
                 self.self_destruct(coords.src)
-                ##If the game is not cloned, then we can print the game
+                # If the game is not cloned, then we can print the game
                 if not is_game_clone:
                     text_trace += f"SELF DESTRUCTION at {coords.src}\n{self}\n\n"
                     print(text_trace)
                     self.write_output(text_trace)
-                return (True, "")
-            ## MOVE
+                return True, ""
+            # MOVE
             elif destination is None:
                 self.set(coords.dst, source)
                 self.set(coords.src, None)
-                ##If the game is not cloned, then we can print the game
+                # If the game is not cloned, then we can print the game
                 if not is_game_clone:
                     text_trace += f"MOVE from : {coords.src} to {coords.dst}\n{self}\n\n"
                     print(text_trace)
                     self.write_output(text_trace)
-                return (True, "")
-            ## ATTACK
+                return True, ""
+            # ATTACK
             elif source.player != destination.player:
                 health_amount_destination = -source.damage_amount(destination)
                 health_amount_source = -destination.damage_amount(source)
@@ -451,17 +450,17 @@ class Game:
                     text_trace += f"Attack from : {coords.src} to {coords.dst}\n{self}\n\n"
                     print(text_trace)
                     self.write_output(text_trace)
-                return (True, "")
+                return True, ""
             # case: action is repair
             else:
                 health_amount = source.repair_amount(destination)
                 if health_amount == 0:
                     # repair invalid
-                    return (False, "invalid move")
+                    return False, "invalid move"
                 self.mod_health(coords.dst, health_amount=health_amount)
                 text_trace += f"Repair from {coords.src} to {coords.dst}\n{self}\n\n"
-                return (True, "")
-        return (False, "invalid move")
+                return True, ""
+        return False, "invalid move"
 
     def get_unit_count(self, player: Player, unit_type: UnitType) -> int:  # for e0
         """Returns the count of a specific unit type for a given player."""
@@ -494,7 +493,8 @@ class Game:
                 defender_potential_damage += Unit.damage_table[unit.type.value][opp_unit.type.value]
 
         return attacker_potential_damage - defender_potential_damage
-######################################################################################################################################
+
+    ######################################################################################################################################
     def start_logging(self, file_path: str) -> None:
         """Open the output file for logging."""
         self.output_file = open(file_path, 'w')
@@ -512,7 +512,6 @@ class Game:
         else:
             print(output, end='')
 
-
     def next_turn(self):
         """Transitions game to the next turn."""
         self.next_player = self.next_player.next()
@@ -523,7 +522,7 @@ class Game:
         dim = self.options.dim
         output = ""
         output += f"Next player: {self.next_player.name}\n"
-        ##Omit output if turns played is 0
+        # Omit output if turns played is 0
         if self.turns_played != 0:
             output += f"Turns played: {self.turns_played}\n"
         coord = Coord()
@@ -748,7 +747,7 @@ class Game:
             print("CALL ALPHA-BETA")
         else:
             score, move = self.minimax(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
-                                   start_time, max_time)  # Attacker will always be the initial maximizer
+                                       start_time, max_time)  # Attacker will always be the initial maximizer
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
@@ -890,6 +889,8 @@ def main():
                 exit(1)
 
     game.stop_logging()
+
+
 ##############################################################################################################
 
 if __name__ == '__main__':
