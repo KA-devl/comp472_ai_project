@@ -273,8 +273,8 @@ class Options:
     dim: int = 5
     max_depth: int | None = 4
     min_depth: int | None = 2
-    max_time: float | None = 5.0
-    game_type: GameType = GameType.AttackerVsComp
+    max_time: float | None = 1.0
+    game_type: GameType = GameType.CompVsComp
     alpha_beta: bool = True  # Leave this True for now
     max_turns: int | None = 100
     randomize_moves: bool = True
@@ -302,6 +302,7 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai: bool = True
     _defender_has_ai: bool = True
+    is_game_clone: bool = False
     output_file: Optional[TextIO] = None
 
     def __post_init__(self):
@@ -415,7 +416,18 @@ class Game:
                 self.mod_health(coord, -2)
         self.mod_health(src_coord, -9)
 
-    def perform_move(self, coords: CoordPair, is_game_clone) -> Tuple[bool, str]:
+    def debug_trace(self, coords: CoordPair) -> None:
+        """display the current player with the move from src to dst"""
+        print(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}")
+        self.write_output(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}\n")
+        # display the compute time
+        print(f"Compute time: {self.options.max_time}")
+        self.write_output(f"Compute time: {self.options.max_time}\n")
+        # display the current depth
+        print(f"Current depth: {self.options.max_depth}")
+        self.write_output(f"Current depth: {self.options.max_depth}\n")
+
+    def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
         """Performing a move depending on the move type & validity of the move"""
         if self.is_valid_move(coords):
             text_trace = ""
@@ -423,33 +435,33 @@ class Game:
             destination = self.get(coords.dst)
             # SELF-DESTRUCT
             if source == destination:
-                self.self_destruct(coords.src)
                 # If the game is not cloned, then we can print the game
-                if not is_game_clone:
-                    text_trace += f"SELF DESTRUCTION at {coords.src}\n{self}\n\n"
-                    print(text_trace)
-                    self.write_output(text_trace)
+                if not self.is_game_clone:
+                    print("----SELF DESTRUCT----")
+                    self.write_output("----SELF DESTRUCT----\n")
+                    self.debug_trace(coords)
+                self.self_destruct(coords.src)
                 return True, ""
             # MOVE
             elif destination is None:
+                if not self.is_game_clone:
+                    print("----MOVE----")
+                    self.write_output("----MOVE----\n")
+                    self.debug_trace(coords)
                 self.set(coords.dst, source)
                 self.set(coords.src, None)
                 # If the game is not cloned, then we can print the game
-                if not is_game_clone:
-                    text_trace += f"MOVE from : {coords.src} to {coords.dst}\n{self}\n\n"
-                    print(text_trace)
-                    self.write_output(text_trace)
                 return True, ""
             # ATTACK
             elif source.player != destination.player:
+                if not self.is_game_clone:
+                    print("----ATTACK----")
+                    self.write_output("----ATTACK----\n")
+                    self.debug_trace(coords)
                 health_amount_destination = -source.damage_amount(destination)
                 health_amount_source = -destination.damage_amount(source)
                 self.mod_health(coords.src, health_amount=health_amount_source)
                 self.mod_health(coords.dst, health_amount=health_amount_destination)
-                if not is_game_clone:
-                    text_trace += f"Attack from : {coords.src} to {coords.dst}\n{self}\n\n"
-                    print(text_trace)
-                    self.write_output(text_trace)
                 return True, ""
             ## REPAIR
             else:
@@ -458,7 +470,10 @@ class Game:
                     # repair invalid
                     return False, "invalid move"
                 self.mod_health(coords.dst, health_amount=health_amount)
-                text_trace += f"Repair from {coords.src} to {coords.dst}\n{self}\n\n"
+                if not self.is_game_clone:
+                    print("----REPAIR----")
+                    self.write_output("----REPAIR----\n")
+                    self.debug_trace(coords)
                 return True, ""
         return False, "invalid move"
 
@@ -518,32 +533,34 @@ class Game:
         self.turns_played += 1
 
     def to_string(self) -> str:
-        """Pretty text representation of the game."""
-        dim = self.options.dim
         output = ""
-        output += f"Next player: {self.next_player.name}\n"
-        # Omit output if turns played is 0
-        if self.turns_played != 0:
+        if not self.is_game_clone:
+            print("==============================================")
+            self.write_output("==============================================\n")
+            """Pretty text representation of the game."""
+            dim = self.options.dim
+            output += f"Next player: {self.next_player.name}\n"
             output += f"Turns played: {self.turns_played}\n"
-        coord = Coord()
-        output += "\n   "
-        for col in range(dim):
-            coord.col = col
-            label = coord.col_string()
-            output += f"{label:^3} "
-        output += "\n"
-        for row in range(dim):
-            coord.row = row
-            label = coord.row_string()
-            output += f"{label}: "
+            coord = Coord()
+            output += "\n   "
             for col in range(dim):
                 coord.col = col
-                unit = self.get(coord)
-                if unit is None:
-                    output += " .  "
-                else:
-                    output += f"{str(unit):^3} "
+                label = coord.col_string()
+                output += f"{label:^3} "
             output += "\n"
+            for row in range(dim):
+                coord.row = row
+                label = coord.row_string()
+                output += f"{label}: "
+                for col in range(dim):
+                    coord.col = col
+                    unit = self.get(coord)
+                    if unit is None:
+                        output += " .  "
+                    else:
+                        output += f"{str(unit):^3} "
+                output += "\n"
+            self.write_output(output)
         return output
 
     def __str__(self) -> str:
@@ -568,14 +585,13 @@ class Game:
                 print('Invalid coordinates! Try again.')
 
     def human_turn(self):
-        is_game_clone = False
         """Human player plays a move (or get via broker)."""
         if self.options.broker is not None:
             print("Getting next move with auto-retry from game broker...")
             while True:
                 mv = self.get_move_from_broker()
                 if mv is not None:
-                    (success, result) = self.perform_move(mv, is_game_clone)
+                    (success, result) = self.perform_move(mv)
                     print(f"Broker {self.next_player.name}: ", end='')
                     print(result)
                     if success:
@@ -585,7 +601,7 @@ class Game:
         else:
             while True:
                 mv = self.read_move()
-                (success, result) = self.perform_move(mv, is_game_clone)
+                (success, result) = self.perform_move(mv)
                 if success:
                     print(result)
                     self.next_turn()
@@ -595,14 +611,13 @@ class Game:
 
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
-        is_game_clone = False
         mv = self.suggest_move()
         if mv is not None:
-            (success, result) = self.perform_move(mv, is_game_clone)
+            (success, result) = self.perform_move(mv)
             if success:
-                print(f"---- Computer {self.next_player.name} ---- ", end='')
-                print(result)
-                self.write_output(f"Computer {self.next_player.name}: {result}\n")
+                #print(f"---- Computer {self.next_player.name} ---- ", end='')
+                #print(result)
+                #self.write_output(f"Computer {self.next_player.name}: {result}\n")
                 self.next_turn()
         return mv
 
@@ -686,7 +701,6 @@ class Game:
     def alpha_beta_pruning(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
                 max_time: float) -> Tuple[int, CoordPair | None]:
         """minimax algorithm"""
-        is_game_clone = True
         current_elapsed_time = (datetime.now() - start_time).total_seconds()
 
         # If depth has been reached or the game is finished or max time has approached, return a heuristic value
@@ -703,7 +717,8 @@ class Game:
             max_eval = float('-inf')
             for move in self.move_candidates():
                 game_clone = self.clone()
-                (success, result) = game_clone.perform_move(move, is_game_clone)
+                game_clone.is_game_clone = True
+                (success, result) = game_clone.perform_move(move)
                 if success:
                     eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, False, start_time, max_time)
                 else:
@@ -724,7 +739,8 @@ class Game:
             min_eval = float('inf')
             for move in self.move_candidates():
                 game_clone = self.clone()
-                (success, result) = game_clone.perform_move(move, is_game_clone)
+                game_clone.is_game_clone = True
+                (success, result) = game_clone.perform_move(move)
                 if success:
                     eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, True, start_time, max_time)
                 else:
