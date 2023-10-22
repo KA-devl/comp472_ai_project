@@ -797,7 +797,6 @@ class Game:
 
                 alpha = max(alpha, max_eval)
                 self.stats.evaluations_per_depth[depth] = self.stats.evaluations_per_depth.get(depth, 0) + 1 + sum(children_evaluations.values())
-                #evals_per_depth[depth] = evals_per_depth.get(depth, 0) + 1 + sum(child_evals_per_depth.values())
 
             return max_eval, best_move, self.stats.evaluations_per_depth
 
@@ -821,7 +820,6 @@ class Game:
 
                 beta = min(beta, min_eval)
                 self.stats.evaluations_per_depth[depth] = self.stats.evaluations_per_depth.get(depth, 0) + 1 + sum(children_evaluations.values())
-                #evals_per_depth[depth] = evals_per_depth.get(depth, 0) + 1 + sum(child_evals_per_depth.values())
 
             return min_eval, best_move, self.stats.evaluations_per_depth
 
