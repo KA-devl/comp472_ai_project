@@ -275,7 +275,7 @@ class Options:
     min_depth: int | None = 2
     max_time: float | None = 5.0
     game_type: GameType = GameType.AttackerVsComp
-    alpha_beta: bool = False  # TO-DO
+    alpha_beta: bool = True  # Leave this True for now
     max_turns: int | None = 100
     randomize_moves: bool = True
     broker: str | None = None
@@ -683,7 +683,7 @@ class Game:
 
         return int(heuristic_value)
 
-    def minimax(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
+    def alpha_beta_pruning(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
                 max_time: float) -> Tuple[int, CoordPair | None]:
         """minimax algorithm"""
         is_game_clone = True
@@ -705,7 +705,7 @@ class Game:
                 game_clone = self.clone()
                 (success, result) = game_clone.perform_move(move, is_game_clone)
                 if success:
-                    eval_value, _ = game_clone.minimax(depth - 1, alpha, beta, False, start_time, max_time)
+                    eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, False, start_time, max_time)
                 else:
                     continue
 
@@ -720,13 +720,13 @@ class Game:
 
             return max_eval, best_move
 
-        else:  # for the minimizing player
+        else:
             min_eval = float('inf')
             for move in self.move_candidates():
                 game_clone = self.clone()
                 (success, result) = game_clone.perform_move(move, is_game_clone)
                 if success:
-                    eval_value, _ = game_clone.minimax(depth - 1, alpha, beta, True, start_time, max_time)
+                    eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, True, start_time, max_time)
                 else:
                     continue
 
@@ -747,10 +747,10 @@ class Game:
         start_time = datetime.now()
         max_depth = int(self.options.max_depth)
         if self.options.alpha_beta:
-            print("CALL ALPHA-BETA")
+            score, move = self.alpha_beta_pruning(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
+                                       start_time, max_time)
         else:
-            score, move = self.minimax(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
-                                       start_time, max_time)  # Attacker will always be the initial maximizer
+            print("CALL MINIMAX")
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
