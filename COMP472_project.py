@@ -273,9 +273,10 @@ class Options:
     dim: int = 5
     max_depth: int | None = 4
     min_depth: int | None = 2
-    max_time: float | None = 1.0
-    game_type: GameType = GameType.CompVsComp
-    alpha_beta: bool = True  # Leave this True for now
+    max_time: float | None = 5.0
+    game_type: GameType = GameType.AttackerVsDefender
+    alpha_beta: bool = True
+    heuristic: str | None = 'e2'
     max_turns: int | None = 100
     randomize_moves: bool = True
     broker: str | None = None
@@ -500,14 +501,24 @@ class Game:
         attacker_potential_damage = 0
         for _, unit in self.player_units(Player.Attacker):
             for _, opp_unit in self.player_units(Player.Defender):
-                attacker_potential_damage += Unit.damage_table[unit.type.value][opp_unit.type.value]
+                attacker_potential_damage += unit.damage_amount(opp_unit)
 
         defender_potential_damage = 0
         for _, unit in self.player_units(Player.Defender):
             for _, opp_unit in self.player_units(Player.Attacker):
-                defender_potential_damage += Unit.damage_table[unit.type.value][opp_unit.type.value]
+                defender_potential_damage += unit.damage_amount(opp_unit)
 
         return attacker_potential_damage - defender_potential_damage
+
+    def get_potential_repair_amount(self, player: Player):
+        total_healing = 0
+        player_units = self.player_units(player)
+        for _, unit in player_units:
+            for _, target in player_units:
+                if unit != target:
+                    total_healing += unit.repair_amount(target)
+
+        return total_healing
 
     ######################################################################################################################################
     def start_logging(self, file_path: str) -> None:
@@ -682,24 +693,77 @@ class Game:
             PP_P2 = self.get_unit_count(Player.Defender, UnitType.Program)
             AI_P2 = self.get_unit_count(Player.Defender, UnitType.AI)
 
-            ##Heuristic given in the assignment
+            # Heuristic given in the assignment
             heuristic_value = (
                     ((3 * VP_P1) + (3 * TP_P1) + (3 * FP_P1) + (3 * PP_P1) + (
                             9999 * AI_P1)) -
                     ((3 * VP_P2) + (3 * TP_P2) + (3 * FP_P2) + (3 * PP_P2) + (
                             9999 * AI_P2))
             )
-        elif heuristic_type == 'e1':
-            #Basically this heuristic is the difference between the aggregate health of the attacker and the defender
+        if heuristic_type == 'e1':
+            # Basically this heuristic is the difference between the aggregate health of the attacker and the defender
             aggregate_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
                 Player.Defender)
             potential_damage_delta = self.get_potential_damage_delta()
             heuristic_value = aggregate_health_amount + potential_damage_delta
 
+        if heuristic_type == 'e2':
+            total_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
+                Player.Defender)
+            potential_damage_delta = self.get_potential_damage_delta()
+            potential_repair_amount = (self.get_potential_repair_amount(Player.Attacker)
+                                       - self.get_potential_repair_amount(Player.Defender))
+            heuristic_value = total_health_amount + potential_damage_delta + potential_repair_amount
+
         return int(heuristic_value)
 
+    def minimax(self, depth: int, maximizing_player: bool, heuristic_type: str, start_time: datetime, max_time: float):
+        current_elapsed_time = (datetime.now() - start_time).total_seconds()
+
+        if self.is_finished():
+            if self.has_winner() == Player.Attacker:
+                return MAX_HEURISTIC_SCORE, None
+            elif self.has_winner() == Player.Defender:
+                return MIN_HEURISTIC_SCORE, None
+        elif depth == 0 or current_elapsed_time > max_time:
+            return self.evaluate_with_heuristic(heuristic_type), None
+
+        best_move = None
+        if maximizing_player:
+            max_eval = float('-inf')
+            for move in self.move_candidates():
+                clone = self.clone()
+                clone.is_game_clone = True
+                (success, result) = clone.perform_move(move)
+                if success:
+                    evaluation, _ = clone.minimax(depth - 1, False, heuristic_type, start_time, max_time)
+                else:
+                    continue
+
+                if evaluation > max_eval:
+                    max_eval = evaluation
+                    best_move = move
+
+            return max_eval, best_move
+        else:
+            min_eval = float('inf')
+            for move in self.move_candidates():
+                clone = self.clone()
+                clone.is_game_clone = True
+                (success, result) = clone.perform_move(move)
+                if success:
+                    evaluation, _ = clone.minimax(depth - 1, True, heuristic_type, start_time, max_time)
+                else:
+                    continue
+
+                if evaluation < min_eval:
+                    min_eval = evaluation
+                    best_move = move
+
+            return min_eval, best_move
+
     def alpha_beta_pruning(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
-                max_time: float) -> Tuple[int, CoordPair | None]:
+                           heuristic_type: str, max_time: float) -> Tuple[int, CoordPair | None]:
         """minimax algorithm"""
         current_elapsed_time = (datetime.now() - start_time).total_seconds()
 
@@ -709,8 +773,8 @@ class Game:
                 return MAX_HEURISTIC_SCORE, None
             elif self.has_winner() == Player.Defender:
                 return MIN_HEURISTIC_SCORE, None
-        elif depth == 0 or current_elapsed_time > max_time:
-            return self.evaluate_with_heuristic('e0'), None
+        elif depth == 0 or current_elapsed_time >= max_time:
+            return self.evaluate_with_heuristic(heuristic_type), None
 
         best_move = None
         if maximizing_player:
@@ -720,7 +784,7 @@ class Game:
                 game_clone.is_game_clone = True
                 (success, result) = game_clone.perform_move(move)
                 if success:
-                    eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, False, start_time, max_time)
+                    eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, False, start_time, heuristic_type, max_time)
                 else:
                     continue
 
@@ -742,7 +806,7 @@ class Game:
                 game_clone.is_game_clone = True
                 (success, result) = game_clone.perform_move(move)
                 if success:
-                    eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, True, start_time, max_time)
+                    eval_value, _ = game_clone.alpha_beta_pruning(depth - 1, alpha, beta, True, start_time, heuristic_type, max_time)
                 else:
                     continue
 
@@ -759,14 +823,15 @@ class Game:
 
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax OR alpha-beta pruning."""
-        max_time = self.options.max_time
         start_time = datetime.now()
         max_depth = int(self.options.max_depth)
+        heuristic = self.options.heuristic
+        max_time = self.options.max_time
         if self.options.alpha_beta:
-            score, move = self.alpha_beta_pruning(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
-                                       start_time, max_time)
+            score, move = self.alpha_beta_pruning(
+                max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker, start_time, heuristic, max_time)
         else:
-            print("CALL MINIMAX")
+            score, move = self.minimax(max_depth, self.next_player == Player.Attacker, heuristic, start_time, max_time)
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
@@ -874,6 +939,8 @@ def main():
             options.max_turns = config_data.get('max_turns', options.max_turns)
             options.randomize_moves = config_data.get('randomize_moves', options.randomize_moves)
             options.broker = config_data.get('broker', options.broker)
+            options.heuristic = config_data.get('heuristic', options.heuristic)
+            print(options)
     except FileNotFoundError:
         print("No options.json file found, using defaults.")
         pass
