@@ -271,12 +271,12 @@ class CoordPair:
 class Options:
     """Representation of the game options."""
     dim: int = 5
-    max_depth: int | None = 4
+    max_depth: int | None = 10
     min_depth: int | None = 2
     max_time: float | None = 5.0
-    game_type: GameType = GameType.AttackerVsDefender
+    game_type: GameType = GameType.CompVsComp
     alpha_beta: bool = True
-    heuristic: str | None = 'e2'
+    heuristic: str | None = 'e1'
     max_turns: int | None = 100
     randomize_moves: bool = True
     broker: str | None = None
@@ -704,8 +704,7 @@ class Game:
             # Basically this heuristic is the difference between the aggregate health of the attacker and the defender
             aggregate_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
                 Player.Defender)
-            potential_damage_delta = self.get_potential_damage_delta()
-            heuristic_value = aggregate_health_amount + potential_damage_delta
+            heuristic_value = aggregate_health_amount 
 
         if heuristic_type == 'e2':
             total_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
