@@ -689,11 +689,11 @@ class Game:
         # If depth has been reached or the game is finished or max time has approached, return a heuristic value
         if self.is_finished():
             if self.has_winner() == Player.Attacker:
-                return (MAX_HEURISTIC_SCORE, None)
+                return MAX_HEURISTIC_SCORE, None
             elif self.has_winner() == Player.Defender:
-                return (MIN_HEURISTIC_SCORE, None)
+                return MIN_HEURISTIC_SCORE, None
         elif depth == 0 or current_elapsed_time > max_time:
-            return (self.evaluate('e1'), None)
+            return self.evaluate('e1'), None
 
         best_move = None
         if maximizing_player:  # for the maximizing player
