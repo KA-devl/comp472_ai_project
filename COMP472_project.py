@@ -96,9 +96,9 @@ class Unit:
         """Are we alive ?"""
         return self.health > 0
 
-    def mod_health(self, health_delta: int):
+    def mod_health(self, health_amount: int):
         """Modify this unit's health by delta amount."""
-        self.health += health_delta
+        self.health += health_amount
         if self.health < 0:
             self.health = 0
         elif self.health > 9:
@@ -217,11 +217,27 @@ class CoordPair:
             for col in range(self.src.col, self.dst.col + 1):
                 yield Coord(row, col)
 
+
+###################### HELPERS ##################################
+    def is_left_top(self) -> bool:  # helper function for is_valid_move()
+        """Checks whether dst coord is at the top and left of src coord"""
+        return (self.dst.row < self.src.row and self.dst.col == self.src.col) or \
+            (self.dst.row == self.src.row and self.dst.col < self.src.col)
+
+
     def is_adjacent(self) -> bool:
         """Check if the 2 Coords are 4-way adjacent."""
-        if (self.src.row == self.dst.row and abs(self.src.col - self.dst.col) == 1
-                or self.src.col == self.dst.col and abs(self.src.row - self.dst.row) == 1):
+        for adj in self.src.iter_adjacent():
+            if self.dst == adj:
+                return True
+        return False
+
+    def is_diagonal(self) -> bool:
+        """Checks if destination and source are diagonal to each other"""
+        if self.src.row != self.dst.row and self.src.col != self.dst.col:
             return True
+        return False
+    ##################################################################################
 
     @classmethod
     def from_quad(cls, row0: int, col0: int, row1: int, col1: int) -> CoordPair:
@@ -343,164 +359,152 @@ class Game:
                 else:
                     self._defender_has_ai = False
 
-    def mod_health(self, coord: Coord, health_delta: int):
-        """Modify health of unit at Coord (positive or negative delta)."""
+    ############################################## MODIFIED HELPER RULE METHODS FROM D1 ##############################################
+    def mod_health(self, coord: Coord, health_amount: int):
+        """Modify health of unit at Coord (positive or negative amount)."""
         target = self.get(coord)
         if target is not None:
-            target.mod_health(health_delta)
+            target.mod_health(health_amount)
             self.remove_dead(coord)
+
+    def is_in_combat(self, src_coord: Coord):
+        """Verify if current unit is in combat with an enemy unit"""
+        src_unit = self.get(src_coord)
+        for adj in src_coord.iter_adjacent():
+            adj_unit = self.get(adj)
+            if adj_unit is not None:
+                if src_unit.player != adj_unit.player:
+                    return True
+        return False
 
     def is_valid_move(self, coords: CoordPair) -> bool:
         """Validate a move expressed as a CoordPair."""
-        unit = self.get(coords.src)
-        if unit is None or unit.player != self.next_player or self.get(coords.dst) is not None:
-            return False
-
-        row_delta = coords.src.row - coords.dst.row
-        col_delta = coords.src.col - coords.dst.col
-        if unit.type in [UnitType.AI, UnitType.Program, UnitType.Firewall]:
-            # cant attack in combat
-            for coord in coords.src.iter_adjacent():
-                if self.get(coord) is not None and self.get(coord).player != self.next_player:
-                    return False
-
-            if unit.player == Player.Attacker:
-                if row_delta == 1 and col_delta == 0 or col_delta == 1 and row_delta == 0:
-                    return True
-            elif unit.player == Player.Defender:
-                if row_delta == -1 and col_delta == 0 or col_delta == -1 and row_delta == 0:
-                    return True
-        elif unit.type in [UnitType.Tech, UnitType.Virus]:
-            if abs(row_delta) == 1 and col_delta == 0 or abs(col_delta) == 1 and row_delta == 0:
-                return True
-
-        return False
-
-    def is_valid_repair(self, coords: CoordPair) -> bool:
-        """Validate if a repair move is valid"""
-        src_unit, dst_unit = self.get(coords.src), self.get(coords.dst)
-        if src_unit.repair_amount(dst_unit) > 0 and coords.is_adjacent():
-            return True
-        return False
-
-    def is_valid_attack(self, coords: CoordPair) -> bool:
-        """Validate if an attack move is valid"""
-        # Get the attacking unit and the defending unit
-        attacking_unit = self.get(coords.src)
-        defending_unit = self.get(coords.dst)
-        # Check if defending unit is not adversarial unit, if so return false
-        if not attacking_unit.is_same_team(defending_unit) and coords.is_adjacent():
-            return True
-        return False
-
-    def debug_trace(self, coords: CoordPair) -> None:
-        """display the current player with the move from src to dst"""
-        self.write_output(f"Player {self.next_player.name} moved from {coords.src} to {coords.dst}\n")
-        # display the compute time
-        print(f"Compute time: {self.options.max_time}")
-        self.write_output(f"Compute time: {self.options.max_time}\n")
-        # display the current depth
-        print(f"Current depth: {self.options.max_depth}")
-        self.write_output(f"Current depth: {self.options.max_depth}\n")
-
-    def start_logging(self, file_path: str) -> None:
-        """Open the output file for logging."""
-        self.output_file = open(file_path, 'w')
-
-    def stop_logging(self) -> None:
-        """Close the output file."""
-        if self.output_file:
-            self.output_file.close()
-            self.output_file = None
-
-    def write_output(self, output: str) -> None:
-        """Write the output to the specified output file or sys.stdout."""
-        if self.output_file:
-            self.output_file.write(output)
-        else:
-            print(output, end='')
-
-    def get_move_type(self, coords: CoordPair) -> MoveType:
-        """Returns move type from src and dst coordinates"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
-            return MoveType.INVALID
-
-        src_unit, dst_unit = self.get(coords.src), self.get(coords.dst)
-        if src_unit is None or src_unit.player != self.next_player:
-            return MoveType.INVALID
+            return False
+        unit = self.get(coords.src)
+        if unit is None or unit.player != self.next_player:
+            return False
+        # if both coords are equal then it's a valid self-destruction move
         if coords.src == coords.dst:
-            return MoveType.SELF_DESTRUCT
-        if dst_unit is None and self.is_valid_move(coords):
-            return MoveType.MOVE
-        if dst_unit is not None and src_unit.is_same_team(dst_unit) and self.is_valid_repair(coords):
-            return MoveType.REPAIR
-        if dst_unit is not None and not src_unit.is_same_team(dst_unit) and self.is_valid_attack(coords):
-            return MoveType.ATTACK
-        return MoveType.INVALID
+            return True
+        if coords.is_diagonal():
+            return False
+        if not coords.is_adjacent():
+            return False
+        # Virus and Tech can move freely
+        if unit.type.name in {"Virus", "Tech"}:
+            return True
+        # Rules for program/ai/firewall
+        ##Checks if in combat
+        is_in_combat = self.is_in_combat(coords.src)
+        ##Checks if destination is empty
+        is_empty_destination = self.get(coords.dst) is None
+        ##Check if can only perform up or left
+        up_or_left = coords.is_left_top()
+        if unit.player == Player.Attacker:
+            if is_empty_destination and (is_in_combat or not up_or_left):
+                return False
+        elif unit.player == Player.Defender:
+            if is_empty_destination and (is_in_combat or up_or_left):
+                return False
+        return True
 
-    def perform_move(self, coords: CoordPair) -> bool | tuple[bool, str]:
-        """Validate and perform a move expressed as a CoordPair."""
-        move_type = self.get_move_type(coords)
-        # call debug_trace
-        if move_type == MoveType.MOVE:
-            print("----MOVE----")
-            self.write_output("----MOVE----\n")
-            self.debug_trace(coords)
-            self.set(coords.dst, self.get(coords.src))
-            self.set(coords.src, None)
-            return True, f"Moved  from {coords.src} to {coords.dst}"
-        if move_type == MoveType.ATTACK:
-            print("----ATTACK----")
-            self.write_output("----ATTACK----\n")
-            self.debug_trace(coords)
-            # Get the attacking unit and the defending unit
-            attacking_unit = self.get(coords.src)
-            defending_unit = self.get(coords.dst)
-            # Get the damage amount
-            attack_damage_amount = attacking_unit.damage_amount(defending_unit)
-            defend_damage_amount = defending_unit.damage_amount(attacking_unit)
+    def self_destruct(self, src_coord: Coord):  # helper function for perform_move()
+        """Self destruct & damage adjacent units by 2 or 9 if they are AI"""
+        for coord in src_coord.iter_range(dist=1):
+            if self.get(coord):
+                self.mod_health(coord, -2)
+        self.mod_health(src_coord, -9)
 
-            self.mod_health(coords.dst, -attack_damage_amount)
-            self.mod_health(coords.src, -defend_damage_amount)
-            print(f"Damage amount from attacker: {attack_damage_amount}")
-            self.write_output(f"Damage amount from attacker: {attack_damage_amount}\n")
-            print(f"Damage amount from victim: {defend_damage_amount}")
-            self.write_output(f"Damage amount from victim: {defend_damage_amount}\n")
-            print(f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}")
-            self.write_output(
-                f"Health of attacker: {attacking_unit.health}, Health of victim: {defending_unit.health}\n")
-            return True, f"{attacking_unit} attacked {defending_unit}"
-        if move_type == MoveType.SELF_DESTRUCT:
-            print("----SELF DESTRUCT----")
-            self.write_output("----SELF DESTRUCT----\n")
-            self.debug_trace(coords)
-            for coord in coords.src.iter_range(1):
-                if coord == coords.src:
-                    self.mod_health(coords.src, -9)
-                else:
-                    self.mod_health(coord, -2)
-            return True, "Self-destructed " + str(coords.src)
-        if move_type == MoveType.REPAIR:
-            print("----REPAIR----")
-            self.write_output("----REPAIR----\n")
-            self.debug_trace(coords)
-            self.mod_health(coords.dst, self.get(coords.src).repair_amount(self.get(coords.dst)))
-            return True, f"{coords.src} repaired {coords.dst}"
-        return False, "Invalid Move"
+    def perform_move(self, coords: CoordPair, is_game_clone) -> Tuple[bool, str]:
+        """Performing a move depending on the move type & validity of the move"""
+        if self.is_valid_move(coords):
+            text_trace = ""
+            source = self.get(coords.src)
+            destination = self.get(coords.dst)
+            ## SELF-DESTRUCT
+            if source == destination:
+                self.self_destruct(coords.src)
+                ##If the game is not cloned, then we can print the game
+                if not is_game_clone:
+                    text_trace += f"Self-destruct at {coords.src}\n{self}\n\n"
+                    print(text_trace)
+                return (True, "")
+            ## MOVE
+            elif destination is None:
+                self.set(coords.dst, source)
+                self.set(coords.src, None)
+                ##If the game is not cloned, then we can print the game
+                if not is_game_clone:
+                    text_trace += f"Move from : {coords.src} to {coords.dst}\n{self}\n\n"
+                    print(text_trace)
+                return (True, "")
+            ## ATTACK
+            elif source.player != destination.player:
+                health_amount_destination = -source.damage_amount(destination)
+                health_amount_source = -destination.damage_amount(source)
+                self.mod_health(coords.src, health_amount=health_amount_source)
+                self.mod_health(coords.dst, health_amount=health_amount_destination)
+                if not is_game_clone:
+                    text_trace += f"Attack from : {coords.src} to {coords.dst}\n{self}\n\n"
+                    print(text_trace)
+                return (True, "")
+            # case: action is repair
+            else:
+                health_amount = source.repair_amount(destination)
+                if health_amount == 0:
+                    # repair invalid
+                    return (False, "invalid move")
+                self.mod_health(coords.dst, health_amount=health_amount)
+                text_trace += f"Repair from {coords.src} to {coords.dst}\n{self}\n\n"
+                return (True, "")
+        return (False, "invalid move")
 
+    def get_unit_count(self, player: Player, unit_type: UnitType) -> int:  # for e0
+        """Returns the count of a specific unit type for a given player."""
+        count = 0
+        for _, unit in self.player_units(player):
+            if unit.type == unit_type:
+                count += 1
+        return count
+
+    def get_aggregate_health(self, player: Player):  # for e1
+        """Get the health difference of the player's units"""
+        total_health = 0
+        for _, unit in self.player_units(player):
+            if unit.type == UnitType.AI:
+                total_health += 10 * unit.health
+            else:
+                total_health += unit.health
+        return total_health
+
+    def get_potential_damage_delta(self):  # for e1
+        """Calculate the potential damage one type of adversary can inflict on the other"""
+        attacker_potential_damage = 0
+        for _, unit in self.player_units(Player.Attacker):
+            for _, opp_unit in self.player_units(Player.Defender):
+                attacker_potential_damage += Unit.damage_table[unit.type.value][opp_unit.type.value]
+
+        defender_potential_damage = 0
+        for _, unit in self.player_units(Player.Defender):
+            for _, opp_unit in self.player_units(Player.Attacker):
+                defender_potential_damage += Unit.damage_table[unit.type.value][opp_unit.type.value]
+
+        return attacker_potential_damage - defender_potential_damage
+######################################################################################################################################
     def next_turn(self):
         """Transitions game to the next turn."""
         self.next_player = self.next_player.next()
         self.turns_played += 1
 
     def to_string(self) -> str:
-        print("==============================================")
-        self.write_output("==============================================\n")
         """Pretty text representation of the game."""
         dim = self.options.dim
         output = ""
         output += f"Next player: {self.next_player.name}\n"
-        output += f"Turns played: {self.turns_played}\n"
+        ##Omit output if turns played is 0
+        if self.turns_played != 0:
+            output += f"Turns played: {self.turns_played}\n"
         coord = Coord()
         output += "\n   "
         for col in range(dim):
@@ -520,7 +524,6 @@ class Game:
                 else:
                     output += f"{str(unit):^3} "
             output += "\n"
-        self.write_output(output)
         return output
 
     def __str__(self) -> str:
@@ -545,13 +548,14 @@ class Game:
                 print('Invalid coordinates! Try again.')
 
     def human_turn(self):
+        is_game_clone = False
         """Human player plays a move (or get via broker)."""
         if self.options.broker is not None:
             print("Getting next move with auto-retry from game broker...")
             while True:
                 mv = self.get_move_from_broker()
                 if mv is not None:
-                    (success, result) = self.perform_move(mv)
+                    (success, result) = self.perform_move(mv, is_game_clone)
                     print(f"Broker {self.next_player.name}: ", end='')
                     print(result)
                     if success:
@@ -561,7 +565,7 @@ class Game:
         else:
             while True:
                 mv = self.read_move()
-                (success, result) = self.perform_move(mv)
+                (success, result) = self.perform_move(mv, is_game_clone)
                 if success:
                     print(result)
                     self.next_turn()
@@ -571,9 +575,10 @@ class Game:
 
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
+        is_game_clone = False
         mv = self.suggest_move()
         if mv is not None:
-            (success, result) = self.perform_move(mv)
+            (success, result) = self.perform_move(mv, is_game_clone)
             if success:
                 print(f"Computer {self.next_player.name}: ", end='')
                 print(result)
@@ -624,13 +629,17 @@ class Game:
             return 0, None, 0
 
     def suggest_move(self) -> CoordPair | None:
-        """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
+        """Suggest the next move using minimax alpha-beta."""
+
+        max_depth = int(self.options.max_depth)
+        max_time = self.options.max_time
+
         start_time = datetime.now()
-        (score, move, avg_depth) = self.random_move()
+
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
+
         print(f"Heuristic score: {score}")
-        print(f"Average recursive depth: {avg_depth:0.1f}")
         print(f"Evals per depth: ", end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ", end='')
@@ -638,6 +647,7 @@ class Game:
         total_evals = sum(self.stats.evaluations_per_depth.values())
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals / self.stats.total_seconds / 1000:0.1f}k/s")
+
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         return move
 
@@ -736,7 +746,6 @@ def main():
     game = Game(options=options)
 
     log_file_path = f'game_trace-{options.alpha_beta}-{options.max_time}-{options.max_turns}.txt'
-    game.start_logging(log_file_path)
     # the main game loop
     while True:
         print()
@@ -744,7 +753,6 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
-            game.write_output(f"{winner.name} wins in {game.turns_played} turns\n")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -761,7 +769,7 @@ def main():
                 print("Computer doesn't know what to do!!!")
                 exit(1)
 
-    game.stop_logging()
+
 ##############################################################################################################
 
 if __name__ == '__main__':
