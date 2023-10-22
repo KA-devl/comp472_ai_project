@@ -628,13 +628,103 @@ class Game:
         else:
             return 0, None, 0
 
-    def suggest_move(self) -> CoordPair | None:
-        """Suggest the next move using minimax alpha-beta."""
+    def evaluate(self, heuristic_type: str) -> int:
+        """Evaluate the board state using the given heuristic. Currently only support e0. TODO: add support for e1 and e2"""
+        heuristic_value = 0
+        if heuristic_type == 'e0':
+            # For Attacker
+            vp_attacker = self.get_unit_count(Player.Attacker, UnitType.Virus)
+            tp_attacker = self.get_unit_count(Player.Attacker, UnitType.Tech)
+            fp_attacker = self.get_unit_count(Player.Attacker, UnitType.Firewall)
+            pp_attacker = self.get_unit_count(Player.Attacker, UnitType.Program)
+            ai_attacker = self.get_unit_count(Player.Attacker, UnitType.AI)
+            # For Defender
+            vp_defender = self.get_unit_count(Player.Defender, UnitType.Virus)
+            tp_defender = self.get_unit_count(Player.Defender, UnitType.Tech)
+            fp_defender = self.get_unit_count(Player.Defender, UnitType.Firewall)
+            pp_defender = self.get_unit_count(Player.Defender, UnitType.Program)
+            ai_defender = self.get_unit_count(Player.Defender, UnitType.AI)
 
+            heuristic_value = (
+                    ((3 * vp_attacker) + (3 * tp_attacker) + (3 * fp_attacker) + (3 * pp_attacker) + (
+                            9999 * ai_attacker)) -
+                    ((3 * vp_defender) + (3 * tp_defender) + (3 * fp_defender) + (3 * pp_defender) + (
+                            9999 * ai_defender))
+            )
+        elif heuristic_type == 'e1':
+            aggregate_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
+                Player.Defender)
+            potential_damage_delta = self.get_potential_damage_delta()
+            heuristic_value = aggregate_health_amount + potential_damage_delta
+
+        return int(heuristic_value)
+
+    def minimax(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
+                max_time: float) -> Tuple[int, CoordPair | None]:
+        """minimax recursive algorithm with alpha-beta pruning."""
+        is_game_clone = True
+        current_elapsed_time = (datetime.now() - start_time).total_seconds()
+
+        # If depth has been reached or the game is finished or max time has approached, return a heuristic value
+        if self.is_finished():
+            if self.has_winner() == Player.Attacker:
+                return (MAX_HEURISTIC_SCORE, None)
+            elif self.has_winner() == Player.Defender:
+                return (MIN_HEURISTIC_SCORE, None)
+        elif depth == 0 or current_elapsed_time > max_time:
+            return (self.evaluate('e1'), None)
+
+        best_move = None
+        if maximizing_player:  # for the maximizing player
+            max_eval = float('-inf')
+            for move in self.move_candidates():
+                game_clone = self.clone()
+                (success, result) = game_clone.perform_move(move, is_game_clone)
+                if success:
+                    eval_value, _ = game_clone.minimax(depth - 1, alpha, beta, False, start_time, max_time)
+                else:
+                    continue
+
+                if eval_value > max_eval:
+                    max_eval = eval_value
+                    best_move = move
+
+                if max_eval > beta:
+                    break
+
+                alpha = max(alpha, max_eval)
+
+            return max_eval, best_move
+
+        else:  # for the minimizing player
+            min_eval = float('inf')
+            for move in self.move_candidates():
+                game_clone = self.clone()
+                (success, result) = game_clone.perform_move(move, is_game_clone)
+                if success:
+                    eval_value, _ = game_clone.minimax(depth - 1, alpha, beta, True, start_time, max_time)
+                else:
+                    continue
+
+                if eval_value < min_eval:
+                    min_eval = eval_value
+                    best_move = move
+
+                if min_eval < alpha:
+                    break
+
+                beta = min(beta, min_eval)
+
+            return min_eval, best_move
+
+    def suggest_move(self) -> CoordPair | None:
+        """Suggest the next move using minimax OR alpha-beta pruning."""
         max_depth = int(self.options.max_depth)
         max_time = self.options.max_time
-
         start_time = datetime.now()
+        ##Add conditions to check algorithm aka if alphabeta or minimax
+        score, move = self.minimax(max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker,
+                                   start_time, max_time)  # Attacker will always be the initial maximizer
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
