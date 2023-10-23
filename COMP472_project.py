@@ -722,12 +722,13 @@ class Game:
 
         if self.is_finished():
             if self.has_winner() == Player.Attacker:
-                return MAX_HEURISTIC_SCORE, None
+                return MAX_HEURISTIC_SCORE, None, {depth: 1}
             elif self.has_winner() == Player.Defender:
-                return MIN_HEURISTIC_SCORE, None
+                return MIN_HEURISTIC_SCORE, None, {depth: 1}
         elif depth == 0 or current_elapsed_time > max_time:
-            return self.evaluate_with_heuristic(heuristic_type), None
+            return self.evaluate_with_heuristic(heuristic_type), None, {depth: 1}
 
+        self.stats.evaluations_per_depth = {depth: 0}
         best_move = None
         if maximizing_player:
             max_eval = float('-inf')
@@ -736,7 +737,7 @@ class Game:
                 clone.is_game_clone = True
                 (success, result) = clone.perform_move(move)
                 if success:
-                    evaluation, _ = clone.minimax(depth - 1, False, heuristic_type, start_time, max_time)
+                    evaluation, _, children_evaluations = clone.minimax(depth - 1, False, heuristic_type, start_time, max_time)
                 else:
                     continue
 
@@ -744,7 +745,9 @@ class Game:
                     max_eval = evaluation
                     best_move = move
 
-            return max_eval, best_move
+                self.stats.evaluations_per_depth[depth] = self.stats.evaluations_per_depth.get(depth, 0) + 1 + sum(children_evaluations.values())
+
+            return max_eval, best_move, self.stats.evaluations_per_depth
         else:
             min_eval = float('inf')
             for move in self.move_candidates():
@@ -752,15 +755,15 @@ class Game:
                 clone.is_game_clone = True
                 (success, result) = clone.perform_move(move)
                 if success:
-                    evaluation, _ = clone.minimax(depth - 1, True, heuristic_type, start_time, max_time)
+                    evaluation, _, children_evaluations = clone.minimax(depth - 1, True, heuristic_type, start_time, max_time)
                 else:
                     continue
 
                 if evaluation < min_eval:
                     min_eval = evaluation
                     best_move = move
-
-            return min_eval, best_move
+                self.stats.evaluations_per_depth[depth] = self.stats.evaluations_per_depth.get(depth, 0) + 1 + sum(children_evaluations.values())
+            return min_eval, best_move, self.stats.evaluations_per_depth
 
     def alpha_beta_pruning(self, depth: int, alpha: float, beta: float, maximizing_player: bool, start_time: datetime,
                            heuristic_type: str, max_time: float):
@@ -833,7 +836,7 @@ class Game:
             score, move, evaluations_per_depth= self.alpha_beta_pruning(
                 max_depth, float('-inf'), float('inf'), self.next_player == Player.Attacker, start_time, heuristic, max_time)
         else:
-            score, move = self.minimax(max_depth, self.next_player == Player.Attacker, heuristic, start_time, max_time)
+            score, move, evaluations_per_depth = self.minimax(max_depth, self.next_player == Player.Attacker, heuristic, start_time, max_time)
 
         total_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += total_seconds
