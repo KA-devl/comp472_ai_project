@@ -758,7 +758,7 @@ class Game:
             evals_per_depth[current_depth] = evals_per_depth.get(current_depth, 0) + 1
             return self.evaluate_with_heuristic(heuristic_type), None
 
-        self.stats.evaluations_per_depth = {depth: 0}
+       
         best_move = None
         if maximizing_player:
             max_eval = float('-inf')
@@ -905,6 +905,7 @@ class Game:
         num_depths_explored = len(child_count) - 1
         average_branching_factors = sum(child_count.values()) / num_depths_explored if num_depths_explored > 0 else 0
         print(f"Average branching factor: {average_branching_factors}")
+        self.write_output(f"Average branching factor: {average_branching_factors}\n")   
 
         if total_seconds > 0:
             print(f"Eval perf.: {total_evals_sum / total_seconds / 1000:0.1f}k/s")
