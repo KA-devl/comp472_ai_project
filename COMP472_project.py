@@ -271,10 +271,10 @@ class CoordPair:
 class Options:
     """Representation of the game options."""
     dim: int = 5
-    max_depth: int | None = 10
+    max_depth: int | None = 4
     min_depth: int | None = 2
     max_time: float | None = 5.0
-    game_type: GameType = GameType.CompVsComp
+    game_type: GameType = GameType.AttackerVsDefender
     alpha_beta: bool = True
     heuristic: str | None = 'e1'
     max_turns: int | None = 100
@@ -486,7 +486,7 @@ class Game:
                 count += 1
         return count
 
-    def get_aggregate_health(self, player: Player):
+    def get_health_difference(self, player: Player):
         """Get the health difference of the player's units"""
         total_health = 0
         for _, unit in self.player_units(player):
@@ -496,8 +496,8 @@ class Game:
                 total_health += unit.health
         return total_health
 
-    def get_potential_damage_delta(self):
-        """Calculate the potential damage one type of adversary can inflict on the other (THIS IS FOR e1)"""
+    def get_potential_damage(self):
+        """Calculate the potential damage of the attacker and the defender (this is for e2)"""
         attacker_potential_damage = 0
         for _, unit in self.player_units(Player.Attacker):
             for _, opp_unit in self.player_units(Player.Defender):
@@ -733,9 +733,9 @@ class Game:
             heuristic_value = attacker_health - defender_health
 
         if heuristic_type == 'e2':
-            total_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
+            total_health_amount = self.get_health_difference(Player.Attacker) - self.get_health_difference(
                 Player.Defender)
-            potential_damage_delta = self.get_potential_damage_delta()
+            potential_damage_delta = self.get_potential_damage()
             potential_repair_amount = (self.get_potential_repair_amount(Player.Attacker)
                                        - self.get_potential_repair_amount(Player.Defender))
             heuristic_value = total_health_amount + potential_damage_delta + potential_repair_amount
