@@ -841,23 +841,34 @@ class Game:
         total_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += total_seconds
         print(f"Heuristic score: {score}")
+        self.write_output(f"Heuristic score: {score}\n")
         ##Give total sum of all the evaluations
         total_evals_sum = sum(evaluations_per_depth.values())
-        print(f"Cumulative evals: {total_evals_sum}")
+        print(f"Cumulative evals: {total_evals_sum}\n")
+        self.write_output(f"Cumulative evals: {total_evals_sum}\n")
 
-        print(f"Cumulative evals by depth: ", end='')
+        print(f"Cumulative evals by depth:  ", end='')
+        self.write_output(f"Cumulative evals by depth: \n ")
+
         for k in sorted(evaluations_per_depth.keys()):
             print(f"{k}:{evaluations_per_depth[k]} ", end='')
+            self.write_output(f"{k}:{evaluations_per_depth[k]} ")
+        self.write_output("\n")
         print()
 
         print(f"Cumulative % evals by depth: ", end='')
+        self.write_output(f"Cumulative % evals by depth: \n ")
         for k in sorted(evaluations_per_depth.keys()):
             print(f"{k}:{evaluations_per_depth[k] / total_evals_sum:0.1%} ", end='')
+            self.write_output(f"{k}:{evaluations_per_depth[k] / total_evals_sum:0.1%} ")
+        self.write_output("\n")
         print()
 
         if total_seconds > 0:
             print(f"Eval perf.: {total_evals_sum / total_seconds / 1000:0.1f}k/s")
+            self.write_output(f"Eval perf.: {total_evals_sum / total_seconds / 1000:0.1f}k/s\n")
         print(f"Elapsed time: {total_seconds:0.1f}s")
+        self.write_output(f"Elapsed time: {total_seconds:0.1f}s\n")
 
         # Return the best move
         return move
