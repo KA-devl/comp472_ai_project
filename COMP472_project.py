@@ -276,7 +276,7 @@ class Options:
     max_time: float | None = 5.0
     game_type: GameType = GameType.AttackerVsDefender
     alpha_beta: bool = True
-    heuristic: str | None = 'e2'
+    heuristic: str | None = 'e1'
     max_turns: int | None = 100
     randomize_moves: bool = True
     broker: str | None = None
@@ -486,7 +486,7 @@ class Game:
                 count += 1
         return count
 
-    def get_aggregate_health(self, player: Player):
+    def get_health_difference(self, player: Player):
         """Get the health difference of the player's units"""
         total_health = 0
         for _, unit in self.player_units(player):
@@ -496,8 +496,8 @@ class Game:
                 total_health += unit.health
         return total_health
 
-    def get_potential_damage_delta(self):
-        """Calculate the potential damage one type of adversary can inflict on the other (THIS IS FOR e1)"""
+    def get_potential_damage(self):
+        """Calculate the potential damage of the attacker and the defender (this is for e2)"""
         attacker_potential_damage = 0
         for _, unit in self.player_units(Player.Attacker):
             for _, opp_unit in self.player_units(Player.Defender):
@@ -701,16 +701,41 @@ class Game:
                             9999 * AI_P2))
             )
         if heuristic_type == 'e1':
-            # Basically this heuristic is the difference between the aggregate health of the attacker and the defender
-            aggregate_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
-                Player.Defender)
-            potential_damage_delta = self.get_potential_damage_delta()
-            heuristic_value = aggregate_health_amount + potential_damage_delta
+            # Basically this heuristic is the difference between the total health of the attacker and the defender with multipliers
+            
+            #get health of attacker units like Ai, Virus, Tech, Firewall, Program 
+            attacker_health=0
+            defender_health=0
+            for _, unit in self.player_units(Player.Attacker):
+                if unit.type == UnitType.AI:
+                    attacker_health += 9999 * unit.health
+                elif unit.type == UnitType.Virus:
+                    attacker_health += 9 * unit.health
+                elif unit.type == UnitType.Tech:
+                    attacker_health += 5 * unit.health
+                elif unit.type == UnitType.Firewall:
+                    attacker_health += 2 * unit.health
+                elif unit.type == UnitType.Program:
+                    attacker_health += 5*unit.health
+            #get health of defender units like Ai, Virus, Tech, Firewall, Program
+            for _, unit in self.player_units(Player.Defender):
+                if unit.type == UnitType.AI:
+                    defender_health += 9999 * unit.health
+                elif unit.type == UnitType.Virus:
+                    defender_health += 9 * unit.health
+                elif unit.type == UnitType.Tech:
+                    defender_health += 5 * unit.health
+                elif unit.type == UnitType.Firewall:
+                    defender_health += 2 * unit.health
+                elif unit.type == UnitType.Program:
+                    defender_health += 5*unit.health
+
+            heuristic_value = attacker_health - defender_health
 
         if heuristic_type == 'e2':
-            total_health_amount = self.get_aggregate_health(Player.Attacker) - self.get_aggregate_health(
+            total_health_amount = self.get_health_difference(Player.Attacker) - self.get_health_difference(
                 Player.Defender)
-            potential_damage_delta = self.get_potential_damage_delta()
+            potential_damage_delta = self.get_potential_damage()
             potential_repair_amount = (self.get_potential_repair_amount(Player.Attacker)
                                        - self.get_potential_repair_amount(Player.Defender))
             heuristic_value = total_health_amount + potential_damage_delta + potential_repair_amount
