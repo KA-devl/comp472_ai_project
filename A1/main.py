@@ -1,5 +1,6 @@
 import imageio.v2 as imageio
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn import tree
 from sklearn.metrics import confusion_matrix, classification_report
@@ -129,160 +130,192 @@ if __name__ == '__main__':
     ##Penguin
     # A) clear string describing the model, hyper parameters values that were changed
     penguin_y_pred_base_dt = base_dt_penguins.predict(X_test_penguin)
-    print("================================= Base DT (penguins) ============================================:")
-    print("Hyper parameters values that were changed :")
-    print(base_dt_penguins.get_params())
-    # B) the confusion matrix
-    penguin_confusion_matrix_base_dt = pd.crosstab(y_test_penguin, penguin_y_pred_base_dt, rownames=['Actual'],
-                                                   colnames=['Predicted'])
-    print("Confusion matrix for base DT :")
-    print(penguin_confusion_matrix_base_dt)
-    # C) The precision, recall, and F1-score for each class
-    print("Precision, recall, and F1-score for each class :")
-    print(classification_report(y_test_penguin, penguin_y_pred_base_dt))
-    # D) The accuracy, macro-average F1-score, and weighted-average F1-score
-    print('Accuracy: ', base_dt_penguins.score(X_test_penguin, y_test_penguin))
-    print('Macro-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['macro avg']['f1-score'])
-    print('Weighted-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['weighted avg']['f1-score'])
+    with open("penguin_performance.txt", "w") as f:
+        print("================================= Base DT (penguins) ============================================:",
+              file=f)
+        print("Hyper parameters values that were changed :", file=f)
+        print(base_dt_penguins.get_params(), file=f)
+        # B) the confusion matrix
+        penguin_confusion_matrix_base_dt = pd.crosstab(y_test_penguin, penguin_y_pred_base_dt, rownames=['Actual'],
+                                                       colnames=['Predicted'])
+        print("Confusion matrix for base DT :", file=f)
+        print(penguin_confusion_matrix_base_dt, file=f)
+        # C) The precision, recall, and F1-score for each class
+        print("Precision, recall, and F1-score for each class :", file=f)
+        print(classification_report(y_test_penguin, penguin_y_pred_base_dt), file=f)
+        # D) The accuracy, macro-average F1-score, and weighted-average F1-score
+        print('Accuracy: ', base_dt_penguins.score(X_test_penguin, y_test_penguin), file=f)
+        print('Macro-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['macro avg']['f1-score'],
+              file=f)
+        print('Weighted-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['weighted avg'][
+                  'f1-score'], file=f)
 
-    print("================================= Top DT (penguins) ============================================:")
-    penguin_y_pred_top_dt = best_top_dt.predict(X_test_penguin)
-    print("Best parameters found by gridsearch :")
-    print(top_dt_penguins.best_params_)
-    penguin_confusion_matrix_top_dt = pd.crosstab(y_test_penguin, penguin_y_pred_top_dt, rownames=['Actual'],
-                                                  colnames=['Predicted'])
-    print("Confusion matrix for top DT :")
-    print(penguin_confusion_matrix_top_dt)
-    print("Precision, recall, and F1-score for each class :")
-    print(classification_report(y_test_penguin, penguin_y_pred_top_dt))
-    print('Accuracy: ', best_top_dt.score(X_test_penguin, y_test_penguin))
-    print('Macro-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True)['macro avg']['f1-score'])
-    print('Weighted-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True)['weighted avg']['f1-score'])
+        print("================================= Top DT (penguins) ============================================:",
+              file=f)
+        penguin_y_pred_top_dt = best_top_dt.predict(X_test_penguin)
+        print("Best parameters found by gridsearch :", file=f)
+        print(top_dt_penguins.best_params_, file=f)
+        penguin_confusion_matrix_top_dt = pd.crosstab(y_test_penguin, penguin_y_pred_top_dt, rownames=['Actual'],
+                                                      colnames=['Predicted'])
+        print("Confusion matrix for top DT :", file=f)
+        print(penguin_confusion_matrix_top_dt, file=f)
+        print("Precision, recall, and F1-score for each class :", file=f)
+        print(classification_report(y_test_penguin, penguin_y_pred_top_dt), file=f)
+        print('Accuracy: ', best_top_dt.score(X_test_penguin, y_test_penguin), file=f)
+        print('Macro-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True)['macro avg']['f1-score'],
+              file=f)
+        print('Weighted-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True)['weighted avg'][
+                  'f1-score'], file=f)
 
-    print("================================= Base MLP (penguins) ============================================:")
-    penguin_y_pred_base_mlp = base_mlp_penguins.predict(X_test_penguin)
-    print("Hyper parameters values that were changed :")
-    print(base_mlp_penguins.get_params())
-    print("Confusion matrix for base MLP :")
-    print(confusion_matrix(y_test_penguin, penguin_y_pred_base_mlp))
-    print("Precision, recall, and F1-score for each class :")
-    print(classification_report(y_test_penguin, penguin_y_pred_base_mlp, zero_division=0))
-    print('Accuracy: ', base_mlp_penguins.score(X_test_penguin, y_test_penguin))
-    print('Macro-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
-              'macro avg']['f1-score'])
-    print('Weighted-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
-              'weighted avg']['f1-score'])
+        print("================================= Base MLP (penguins) ============================================:",
+              file=f)
+        penguin_y_pred_base_mlp = base_mlp_penguins.predict(X_test_penguin)
+        print("Hyper parameters values that were changed :", file=f)
+        print(base_mlp_penguins.get_params(), file=f)
+        print("Confusion matrix for base MLP :", file=f)
+        print(confusion_matrix(y_test_penguin, penguin_y_pred_base_mlp), file=f)
+        print("Precision, recall, and F1-score for each class :", file=f)
+        print(classification_report(y_test_penguin, penguin_y_pred_base_mlp, zero_division=0), file=f)
+        print('Accuracy: ', base_mlp_penguins.score(X_test_penguin, y_test_penguin), file=f)
+        print('Macro-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
+                  'macro avg']['f1-score'], file=f)
+        print('Weighted-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
+                  'weighted avg']['f1-score'], file=f)
 
-    print("================================= Top MLP (penguins) ============================================:")
-    penguin_y_pred_top_mlp = top_mlp_penguins.predict(X_test_penguin)
-    print("Best parameters found by gridsearch :")
-    print(top_mlp_penguins.best_params_)
-    print("Confusion matrix for top MLP :")
-    print(confusion_matrix(y_test_penguin, penguin_y_pred_top_mlp))
-    print("Precision, recall, and F1-score for each class :")
-    print(classification_report(y_test_penguin, penguin_y_pred_top_mlp, zero_division=0))
-    print('Accuracy: ', top_mlp_penguins.score(X_test_penguin, y_test_penguin))
-    print('Macro-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)['macro avg'][
-              'f1-score'])
-    print('Weighted-average F1-score: ',
-          classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
-              'weighted avg']['f1-score'])
+        print("================================= Top MLP (penguins) ============================================:",
+              file=f)
+        penguin_y_pred_top_mlp = top_mlp_penguins.predict(X_test_penguin)
+        print("Best parameters found by gridsearch :", file=f)
+        print(top_mlp_penguins.best_params_, file=f)
+        print("Confusion matrix for top MLP :", file=f)
+        print(confusion_matrix(y_test_penguin, penguin_y_pred_top_mlp), file=f)
+        print("Precision, recall, and F1-score for each class :", file=f)
+        print(classification_report(y_test_penguin, penguin_y_pred_top_mlp, zero_division=0), file=f)
+        print('Accuracy: ', top_mlp_penguins.score(X_test_penguin, y_test_penguin), file=f)
+        print('Macro-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
+                  'macro avg'][
+                  'f1-score'], file=f)
+        print('Weighted-average F1-score: ',
+              classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
+                  'weighted avg']['f1-score'], file=f)
 
-    ##Question 6 average performance measure ========================================================
-    ##Same as question 5, but give the average of 5 runs
-    ##Penguin
-    # A) clear string describing the model, hyper parameters values that were changed
-    print("================================= Base DT (penguins) AVERAGE ============================================:")
-    penguin_y_pred_base_dt = base_dt_penguins.predict(X_test_penguin)
-    current_base_dt_average_accuracy = 0
-    current_base_dt_average_macro_f1 = 0
-    current_base_dt_average_weighted_f1 = 0
+        ##Question 6 average performance measure ========================================================
+        ##Same as question 5, but give the average of 5 runs
+        ##Penguin
+        # A) clear string describing the model, hyper parameters values that were changed
+        print(
+            "================================= Base DT (penguins) AVERAGE ============================================:",
+            file=f)
+        penguin_y_pred_base_dt = base_dt_penguins.predict(X_test_penguin)
+        current_base_dt_accuracy = []
+        current_base_dt_macro_f1 = []
+        current_base_dt_weighted_f1 = []
 
-    for i in range(5):
-        current_base_dt_average_accuracy += base_dt_penguins.score(X_test_penguin, y_test_penguin)
-        current_base_dt_average_macro_f1 += \
-            classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['macro avg']['f1-score']
-        current_base_dt_average_weighted_f1 += \
-            classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['weighted avg']['f1-score']
+        for i in range(5):
+            current_base_dt_accuracy.append(base_dt_penguins.score(X_test_penguin, y_test_penguin))
+            current_base_dt_macro_f1.append(
+                classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['macro avg']['f1-score'])
+            current_base_dt_weighted_f1.append(
+                classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['weighted avg']['f1-score'])
 
-    print("Average accuracy :")
-    print(current_base_dt_average_accuracy / 5)
-    print("Average macro-average F1 :")
-    print(current_base_dt_average_macro_f1 / 5)
-    print("Average weighted-average F1 :")
-    print(current_base_dt_average_weighted_f1 / 5)
+        current_base_dt_average_accuracy = sum(current_base_dt_accuracy) / len(current_base_dt_accuracy)
+        current_base_dt_average_macro_f1 = sum(current_base_dt_macro_f1) / len(current_base_dt_macro_f1)
+        current_base_dt_average_weighted_f1 = sum(current_base_dt_weighted_f1) / len(current_base_dt_weighted_f1)
 
-    print("================================= Top DT (penguins) AVERAGE ============================================:")
-    penguin_y_pred_top_dt = best_top_dt.predict(X_test_penguin)
-    current_top_dt_average_accuracy = 0
-    current_top_dt_average_macro_f1 = 0
-    current_top_dt_average_weighted_f1 = 0
+        print("Average accuracy :", file=f)
+        print(current_base_dt_average_accuracy, file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_dt_accuracy), file=f)
+        print("Average macro-average F1 :", file=f)
+        print(current_base_dt_average_macro_f1, file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_dt_macro_f1), file=f)
+        print("Average weighted-average F1 :", file=f)
+        print(current_base_dt_average_weighted_f1, file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_dt_weighted_f1), file=f)
 
-    for i in range(5):
-        current_top_dt_average_accuracy += best_top_dt.score(X_test_penguin, y_test_penguin)
-        current_top_dt_average_macro_f1 += \
-            classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True, zero_division=0)[
-                'macro avg'][
-                'f1-score']
-        current_top_dt_average_weighted_f1 += \
-            classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True, zero_division=0)[
-                'weighted avg'][
-                'f1-score']
+        print(
+            "================================= Top DT (penguins) AVERAGE ============================================:",
+            file=f)
+        penguin_y_pred_top_dt = best_top_dt.predict(X_test_penguin)
+        current_top_dt_average_accuracy = 0
+        current_top_dt_average_macro_f1 = 0
+        current_top_dt_average_weighted_f1 = 0
 
-    print("Average accuracy :")
-    print(current_top_dt_average_accuracy / 5)
-    print("Average macro-average F1 :")
-    print(current_top_dt_average_macro_f1 / 5)
-    print("Average weighted-average F1 :")
-    print(current_top_dt_average_weighted_f1 / 5)
+        for i in range(5):
+            current_top_dt_average_accuracy += best_top_dt.score(X_test_penguin, y_test_penguin)
+            current_top_dt_average_macro_f1 += \
+                classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True, zero_division=0)[
+                    'macro avg'][
+                    'f1-score']
+            current_top_dt_average_weighted_f1 += \
+                classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True, zero_division=0)[
+                    'weighted avg'][
+                    'f1-score']
 
-    print("================================= Base MLP (penguins) AVERAGE ============================================:")
-    penguin_y_pred_base_mlp = base_mlp_penguins.predict(X_test_penguin)
-    current_base_mlp_average_accuracy = 0
-    current_base_mlp_average_macro_f1 = 0
-    current_base_mlp_average_weighted_f1 = 0
+        print("Average accuracy :", file=f)
+        print(current_top_dt_average_accuracy / 5, file=f)
+        print("Average macro-average F1 :", file=f)
+        print(current_top_dt_average_macro_f1 / 5, file=f)
+        print("Average weighted-average F1 :", file=f)
+        print(current_top_dt_average_weighted_f1 / 5, file=f)
 
-    for i in range(5):
-        current_base_mlp_average_accuracy += base_mlp_penguins.score(X_test_penguin, y_test_penguin)
-        current_base_mlp_average_macro_f1 += classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)['macro avg']['f1-score']
-        current_base_mlp_average_weighted_f1 += classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)['weighted avg']['f1-score']
+        print(
+            "================================= Base MLP (penguins) AVERAGE ============================================:",
+            file=f)
+        penguin_y_pred_base_mlp = base_mlp_penguins.predict(X_test_penguin)
+        current_base_mlp_average_accuracy = 0
+        current_base_mlp_average_macro_f1 = 0
+        current_base_mlp_average_weighted_f1 = 0
 
-    print("Average accuracy :")
-    print(current_base_mlp_average_accuracy / 5)
-    print("Average macro-average F1 :")
-    print(current_base_mlp_average_macro_f1 / 5)
-    print("Average weighted-average F1 :")
-    print(current_base_mlp_average_weighted_f1 / 5)
-
-    print("================================= Top MLP (penguins) AVERAGE ============================================:")
-    penguin_y_pred_top_mlp = top_mlp_penguins.predict(X_test_penguin)
-    current_top_mlp_average_accuracy = 0
-    current_top_mlp_average_macro_f1 = 0
-    current_top_mlp_average_weighted_f1 = 0
-
-    for i in range(5):
-        current_top_mlp_average_accuracy += top_mlp_penguins.score(X_test_penguin, y_test_penguin)
-        current_top_mlp_average_macro_f1 += \
-            classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
-                'macro avg'][
-                'f1-score']
-        current_top_mlp_average_weighted_f1 += \
-            classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
+        for i in range(5):
+            current_base_mlp_average_accuracy += base_mlp_penguins.score(X_test_penguin, y_test_penguin)
+            current_base_mlp_average_macro_f1 += \
+            classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
+                'macro avg']['f1-score']
+            current_base_mlp_average_weighted_f1 += \
+            classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
                 'weighted avg']['f1-score']
 
-    print("Average accuracy :")
-    print(current_top_mlp_average_accuracy / 5)
-    print("Average macro-average F1 :")
-    print(current_top_mlp_average_macro_f1 / 5)
-    print("Average weighted-average F1 :")
-    print(current_top_mlp_average_weighted_f1 / 5)
+        print("Average accuracy :", file=f)
+        print(current_base_mlp_average_accuracy / 5, file=f)
+        print("Average macro-average F1 :", file=f)
+        print(current_base_mlp_average_macro_f1 / 5, file=f)
+        print("Average weighted-average F1 :", file=f)
+        print(current_base_mlp_average_weighted_f1 / 5, file=f)
+
+        print(
+            "================================= Top MLP (penguins) AVERAGE ============================================:",
+            file=f)
+        penguin_y_pred_top_mlp = top_mlp_penguins.predict(X_test_penguin)
+        current_top_mlp_average_accuracy = 0
+        current_top_mlp_average_macro_f1 = 0
+        current_top_mlp_average_weighted_f1 = 0
+
+        for i in range(5):
+            current_top_mlp_average_accuracy += top_mlp_penguins.score(X_test_penguin, y_test_penguin)
+            current_top_mlp_average_macro_f1 += \
+                classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
+                    'macro avg'][
+                    'f1-score']
+            current_top_mlp_average_weighted_f1 += \
+                classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
+                    'weighted avg']['f1-score']
+
+        print("Average accuracy :", file=f)
+        print(current_top_mlp_average_accuracy / 5, file=f)
+        print("Average macro-average F1 :", file=f)
+        print(current_top_mlp_average_macro_f1 / 5, file=f)
+        print("Average weighted-average F1 :", file=f)
+        print(current_top_mlp_average_weighted_f1 / 5, file=f)
 
     ##TO DO
     ##1. Abalone
