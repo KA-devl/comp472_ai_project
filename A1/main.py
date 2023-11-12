@@ -1,5 +1,6 @@
 import imageio.v2 as imageio
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn import tree
 from sklearn.metrics import confusion_matrix, classification_report
@@ -213,24 +214,33 @@ if __name__ == '__main__':
             "================================= Base DT (penguins) AVERAGE ============================================:",
             file=f)
         penguin_y_pred_base_dt = base_dt_penguins.predict(X_test_penguin)
-        current_base_dt_average_accuracy = 0
-        current_base_dt_average_macro_f1 = 0
-        current_base_dt_average_weighted_f1 = 0
+        current_base_dt_accuracy = []
+        current_base_dt_macro_f1 = []
+        current_base_dt_weighted_f1 = []
 
         for i in range(5):
-            current_base_dt_average_accuracy += base_dt_penguins.score(X_test_penguin, y_test_penguin)
-            current_base_dt_average_macro_f1 += \
-                classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['macro avg']['f1-score']
-            current_base_dt_average_weighted_f1 += \
-                classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['weighted avg'][
-                    'f1-score']
+            current_base_dt_accuracy.append(base_dt_penguins.score(X_test_penguin, y_test_penguin))
+            current_base_dt_macro_f1.append(
+                classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['macro avg']['f1-score'])
+            current_base_dt_weighted_f1.append(
+                classification_report(y_test_penguin, penguin_y_pred_base_dt, output_dict=True)['weighted avg']['f1-score'])
+
+        current_base_dt_average_accuracy = sum(current_base_dt_accuracy) / len(current_base_dt_accuracy)
+        current_base_dt_average_macro_f1 = sum(current_base_dt_macro_f1) / len(current_base_dt_macro_f1)
+        current_base_dt_average_weighted_f1 = sum(current_base_dt_weighted_f1) / len(current_base_dt_weighted_f1)
 
         print("Average accuracy :", file=f)
-        print(current_base_dt_average_accuracy / 5, file=f)
+        print(current_base_dt_average_accuracy, file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_dt_accuracy), file=f)
         print("Average macro-average F1 :", file=f)
-        print(current_base_dt_average_macro_f1 / 5, file=f)
+        print(current_base_dt_average_macro_f1, file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_dt_macro_f1), file=f)
         print("Average weighted-average F1 :", file=f)
-        print(current_base_dt_average_weighted_f1 / 5, file=f)
+        print(current_base_dt_average_weighted_f1, file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_dt_weighted_f1), file=f)
 
         print(
             "================================= Top DT (penguins) AVERAGE ============================================:",
