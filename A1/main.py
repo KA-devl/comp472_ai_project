@@ -246,76 +246,94 @@ if __name__ == '__main__':
             "================================= Top DT (penguins) AVERAGE ============================================:",
             file=f)
         penguin_y_pred_top_dt = best_top_dt.predict(X_test_penguin)
-        current_top_dt_average_accuracy = 0
-        current_top_dt_average_macro_f1 = 0
-        current_top_dt_average_weighted_f1 = 0
+        current_top_dt_average_accuracy = []
+        current_top_dt_average_macro_f1 = []
+        current_top_dt_average_weighted_f1 = []
 
         for i in range(5):
-            current_top_dt_average_accuracy += best_top_dt.score(X_test_penguin, y_test_penguin)
-            current_top_dt_average_macro_f1 += \
+            current_top_dt_average_accuracy.append(best_top_dt.score(X_test_penguin, y_test_penguin))
+            current_top_dt_average_macro_f1.append(
                 classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True, zero_division=0)[
                     'macro avg'][
-                    'f1-score']
-            current_top_dt_average_weighted_f1 += \
+                    'f1-score'])
+            current_top_dt_average_weighted_f1.append(
                 classification_report(y_test_penguin, penguin_y_pred_top_dt, output_dict=True, zero_division=0)[
                     'weighted avg'][
-                    'f1-score']
+                    'f1-score'])
 
         print("Average accuracy :", file=f)
-        print(current_top_dt_average_accuracy / 5, file=f)
+        print(sum(current_top_dt_average_accuracy) / len(current_top_dt_average_accuracy), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_top_dt_average_accuracy), file=f)
         print("Average macro-average F1 :", file=f)
-        print(current_top_dt_average_macro_f1 / 5, file=f)
+        print(sum(current_top_dt_average_macro_f1) / len(current_top_dt_average_macro_f1), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_top_dt_average_macro_f1), file=f)
         print("Average weighted-average F1 :", file=f)
-        print(current_top_dt_average_weighted_f1 / 5, file=f)
+        print(sum(current_top_dt_average_weighted_f1) / len(current_top_dt_average_weighted_f1), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_top_dt_average_weighted_f1), file=f)
 
         print(
             "================================= Base MLP (penguins) AVERAGE ============================================:",
             file=f)
         penguin_y_pred_base_mlp = base_mlp_penguins.predict(X_test_penguin)
-        current_base_mlp_average_accuracy = 0
-        current_base_mlp_average_macro_f1 = 0
-        current_base_mlp_average_weighted_f1 = 0
+        current_base_mlp_average_accuracy = []
+        current_base_mlp_average_macro_f1 = []
+        current_base_mlp_average_weighted_f1 = []
 
         for i in range(5):
-            current_base_mlp_average_accuracy += base_mlp_penguins.score(X_test_penguin, y_test_penguin)
-            current_base_mlp_average_macro_f1 += \
+            current_base_mlp_average_accuracy.append(base_mlp_penguins.score(X_test_penguin, y_test_penguin))
+            current_base_mlp_average_macro_f1.append(
             classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
-                'macro avg']['f1-score']
-            current_base_mlp_average_weighted_f1 += \
+                'macro avg']['f1-score'])
+            current_base_mlp_average_weighted_f1.append(
             classification_report(y_test_penguin, penguin_y_pred_base_mlp, output_dict=True, zero_division=0)[
-                'weighted avg']['f1-score']
+                'weighted avg']['f1-score'])
 
         print("Average accuracy :", file=f)
-        print(current_base_mlp_average_accuracy / 5, file=f)
+        print(sum(current_base_mlp_average_accuracy) / len(current_base_mlp_average_accuracy), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_mlp_average_accuracy), file=f)
         print("Average macro-average F1 :", file=f)
-        print(current_base_mlp_average_macro_f1 / 5, file=f)
+        print(sum(current_base_mlp_average_macro_f1) / len(current_base_mlp_average_macro_f1), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_mlp_average_macro_f1), file=f)
         print("Average weighted-average F1 :", file=f)
-        print(current_base_mlp_average_weighted_f1 / 5, file=f)
+        print(sum(current_base_mlp_average_weighted_f1) / len(current_base_mlp_average_weighted_f1), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_base_mlp_average_weighted_f1), file=f)
 
         print(
             "================================= Top MLP (penguins) AVERAGE ============================================:",
             file=f)
         penguin_y_pred_top_mlp = top_mlp_penguins.predict(X_test_penguin)
-        current_top_mlp_average_accuracy = 0
-        current_top_mlp_average_macro_f1 = 0
-        current_top_mlp_average_weighted_f1 = 0
+        current_top_mlp_average_accuracy = []
+        current_top_mlp_average_macro_f1 = []
+        current_top_mlp_average_weighted_f1 = []
 
         for i in range(5):
-            current_top_mlp_average_accuracy += top_mlp_penguins.score(X_test_penguin, y_test_penguin)
-            current_top_mlp_average_macro_f1 += \
+            current_top_mlp_average_accuracy.append(top_mlp_penguins.score(X_test_penguin, y_test_penguin))
+            current_top_mlp_average_macro_f1.append(
                 classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
                     'macro avg'][
-                    'f1-score']
-            current_top_mlp_average_weighted_f1 += \
+                    'f1-score'])
+            current_top_mlp_average_weighted_f1.append(
                 classification_report(y_test_penguin, penguin_y_pred_top_mlp, output_dict=True, zero_division=0)[
-                    'weighted avg']['f1-score']
+                    'weighted avg']['f1-score'])
 
         print("Average accuracy :", file=f)
-        print(current_top_mlp_average_accuracy / 5, file=f)
+        print(sum(current_top_mlp_average_accuracy) / len(current_top_mlp_average_accuracy), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_top_mlp_average_accuracy), file=f)
         print("Average macro-average F1 :", file=f)
-        print(current_top_mlp_average_macro_f1 / 5, file=f)
+        print(sum(current_top_mlp_average_macro_f1) / len(current_top_mlp_average_macro_f1), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_top_mlp_average_macro_f1), file=f)
         print("Average weighted-average F1 :", file=f)
-        print(current_top_mlp_average_weighted_f1 / 5, file=f)
+        print(sum(current_top_mlp_average_weighted_f1) / len(current_top_mlp_average_weighted_f1), file=f)
+        print("Variance: ", file=f)
+        print(np.var(current_top_mlp_average_weighted_f1), file=f)
 
     ##TO DO
     ##1. Abalone
