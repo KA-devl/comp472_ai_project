@@ -1,82 +1,89 @@
 import csv
-from gensim.models import KeyedVectors
 from gensim.downloader import load
 
-# Load the pre-trained Word2Vec model
-model_name = 'word2vec-google-news-300'
-model = load(model_name)
+if __name__ == '__main__':
+    # Load the word2vec model
+    model_word2vec = load('word2vec-google-news-300')
+    model = model_word2vec
+    print(f"Loaded word2vec model")
 
-# Load the Synonym Test dataset
-with open('synonym.csv', 'r') as file:
-    synonym_test_data = list(csv.DictReader(file, delimiter='\t'))
 
-# Create the output files
-details_output_path = f"{model_name}-details.csv"
-analysis_output_path = "analysis.csv"
-
-# Function to compute the closest synonym for a word
-def get_closest_synonym(question_word, answer_word, guess_words):
-    try:
-        # Ensure all words are present in the model
-        if all(word in model for word in [question_word, answer_word] + guess_words):
+    def get_closest_synonym(question_word, answer_word, model):
+        # get embedding vector for word
+        try:
             # Compute the cosine similarity between the embeddings
-            similarities = [(guess, model.similarity(question_word, guess)) for guess in guess_words]
+            similarities = [(option, model.similarity(question_word, option.lower())) for option in answer_word]
             # Sort by similarity in descending order
-            similarities.sort(key=lambda x: x[1], reverse=True)
+            sorted_options = sorted(similarities, key=lambda x: x[1], reverse=True)
             # Return the closest synonym
-            return similarities[0][0]
-        else:
+            return sorted_options[0][0]
+        except KeyError:
             return None
-    except KeyError:
-        return None
 
-# Create and write to the details output file
-with open(details_output_path, 'w', newline='') as details_output_file:
-    details_fieldnames = ['question_word', 'correct_answer', 'guess_word', 'label']
-    details_csv_writer = csv.DictWriter(details_output_file, fieldnames=details_fieldnames)
-    details_csv_writer.writeheader()
 
-    # Variables for analysis
-    total_questions = len(synonym_test_data)
-    correct_labels = 0
-    questions_without_guess = 0
 
-    for row in synonym_test_data:
-        question_word = row['question']
-        answer_word = row['answer']
-        guess_words = [row[str(i)] for i in range(4)]
+    def process_synonym_test_data(data, model):
+        correct_count = 0
+        valid_count = 0
+        results = []
 
-        closest_synonym = get_closest_synonym(question_word, answer_word, guess_words)
+        for entry in data:
+            question_word = entry['question']
+            correct_answer = entry['answer']
+            guess_words = [entry[str(i)] for i in range(4)]  # options are in columns 0 to 3
 
-        if closest_synonym is None:
-            label = 'guess'
-        elif closest_synonym == answer_word:
-            label = 'correct'
-            correct_labels += 1
-        else:
-            label = 'wrong'
+            system_guess_word = get_closest_synonym(question_word, guess_words, model)
 
-        details_csv_writer.writerow({'question_word': question_word, 'correct_answer': answer_word, 'guess_word': closest_synonym, 'label': label})
+            if system_guess_word is None or correct_answer not in [question_word] + [system_guess_word]:
+                label = 'guess'
+            elif system_guess_word == correct_answer:
+                label = 'correct'
+            else:
+                label = 'wrong'
 
-        # Count questions answered without guessing
-        if label != 'guess':
-            questions_without_guess += 1
+            if label == 'correct':
+                correct_count += 1
+            if label != 'guess':
+                valid_count += 1
 
-# Calculate accuracy
-accuracy = correct_labels / questions_without_guess if questions_without_guess > 0 else 0
+            # Append the result to the results list
+            results.append({
+                'question_word': question_word,
+                'correct_answer': correct_answer,
+                'system_guess_word': system_guess_word,
+                'label': label
+            })
 
-# Write to the analysis output file
-with open(analysis_output_path, 'w', newline='') as analysis_output_file:
-    analysis_fieldnames = ['model_name', 'vocabulary_size', 'correct_labels', 'questions_without_guess', 'accuracy']
-    analysis_csv_writer = csv.DictWriter(analysis_output_file, fieldnames=analysis_fieldnames)
-    analysis_csv_writer.writeheader()
+        return results, correct_count, valid_count
 
-    analysis_csv_writer.writerow({
-        'model_name': model_name,
-        'vocabulary_size': len(model.vocab),
-        'correct_labels': correct_labels,
-        'questions_without_guess': questions_without_guess,
-        'accuracy': accuracy
-    })
 
-print(f"Results saved to {details_output_path} and {analysis_output_path}")
+    def write_results_to_csv(results, file_name):
+        with open(file_name, 'w', newline='') as csvfile:
+            csv_info = ['question_word', 'correct_answer', 'system_guess_word', 'label']
+            writer = csv.DictWriter(csvfile, fieldnames=csv_info)
+            writer.writeheader()
+            for result in results:
+                writer.writerow(result)
+    def read_csv(file_path):
+        with open(file_path, 'r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            data = [row for row in reader]
+        return data
+
+
+    synonym_data = read_csv('synonym.csv')
+    results, correct_count, valid_count = process_synonym_test_data(synonym_data, model)
+    accuracy = correct_count / valid_count if valid_count > 0 else 0
+    write_results_to_csv(results, 'word2vec-google-news-300-details.csv')
+
+    with open('analysis.csv', 'w', newline='') as csvfile:
+        csv_info = ['model_name', 'vocabulary_size', 'C', 'V', 'accuracy']
+        writer = csv.DictWriter(csvfile, fieldnames=csv_info)
+        model_name = 'word2vec-google-news-300'
+        writer.writerow({
+            'model_name': model_name,
+            'vocabulary_size': 1000000,
+            'C': correct_count,
+            'V': valid_count,
+            'accuracy': accuracy
+        })
