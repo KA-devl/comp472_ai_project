@@ -7,7 +7,7 @@ import nltk
 from gensim.models import Word2Vec
 from matplotlib import pyplot as plt
 
-TRAIN_MODEL = False
+TRAIN_MODEL = True
 
 def train_model_async(sentences, w, e, filename):
     print("STARTED TRAINING MODEL " + filename)
