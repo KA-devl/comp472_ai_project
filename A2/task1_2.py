@@ -89,10 +89,10 @@ if __name__ == '__main__':
     with open('analysis.csv', 'a', newline='') as csvfile:
         csv_info = ['model_name', 'vocabulary_size', 'C', 'V', 'accuracy']
         writer = csv.DictWriter(csvfile, fieldnames=csv_info)
-        model_name = 'glove-wiki-gigaword-300'
+        vocabulary_size = len(model.key_to_index)
         writer.writerow({
             'model_name': model_static_name,
-            'vocabulary_size': 2000000,
+            'vocabulary_size': vocabulary_size,
             'C': correct_count,
             'V': valid_count,
             'accuracy': accuracy
