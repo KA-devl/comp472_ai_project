@@ -6,6 +6,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import nltk
 from gensim.models import Word2Vec
 
+TRAIN_MODEL = True
+
 def train_model_async(sentences, w, e, filename):
     print("STARTED TRAINING MODEL " + filename)
     model = Word2Vec(sentences, window=w, vector_size=e)
@@ -34,9 +36,9 @@ if __name__ == '__main__':
         return data
 
     def train_models(w1, w2, e5, e6):
-        print("processing books")
+        print("PROCESSING BOOKS")
         sentences = preprocess_books('books')
-        print("processed books")
+        print("PROCESSED BOOKS")
 
         with ProcessPoolExecutor() as executor:
             futures = [
@@ -49,7 +51,9 @@ if __name__ == '__main__':
             for future in as_completed(futures):
                 print(future.result())
 
-    train_models(3, 6, 100, 300)
+    if TRAIN_MODEL:
+        train_models(12, 6, 100, 300)
+
     model1 = Word2Vec.load("model1.model")
     model2 = Word2Vec.load("model2.model")
     model3 = Word2Vec.load("model3.model")
@@ -112,3 +116,13 @@ if __name__ == '__main__':
         results, correct_count, valid_count = process_synonym_test_data(synonym_data, model)
         accuracy = correct_count / valid_count if valid_count > 0 else 0
         write_results_to_csv(results, f'model{i}-details.csv')
+        with open('analysis.csv', 'a', newline='') as csvfile:
+            csv_info = ['model_name', 'vocabulary_size', 'C', 'V', 'accuracy']
+            writer = csv.DictWriter(csvfile, fieldnames=csv_info)
+            writer.writerow({
+                'model_name': model,
+                'vocabulary_size': 2000000,
+                'C': correct_count,
+                'V': valid_count,
+                'accuracy': accuracy
+            })
