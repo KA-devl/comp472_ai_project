@@ -7,7 +7,7 @@ import nltk
 from gensim.models import Word2Vec
 from matplotlib import pyplot as plt
 
-TRAIN_MODEL = True
+TRAIN_MODEL = False
 
 def train_model_async(sentences, w, e, filename):
     print("STARTED TRAINING MODEL " + filename)
@@ -116,12 +116,15 @@ if __name__ == '__main__':
             os.makedirs('stats')
 
         plt.figure(figsize=(10, 5))
-        plt.bar(models, accuracies)
+        bars = plt.bar(models, accuracies)
         plt.xlabel('Models')
         plt.ylabel('Accuracy')
         plt.title('Models Accuracy Comparison')
         plt.xticks(models)
         plt.yticks([i * 0.1 for i in range(11)])
+        for bar in bars:
+            yval = round(100 * bar.get_height(), 2)
+            plt.text(bar.get_x() + bar.get_width() / 2, yval / 100, f'{yval}%', ha='center', va='bottom')
 
         plt.savefig('stats/task3_models_accuracy_comparison.png')
         plt.close()
