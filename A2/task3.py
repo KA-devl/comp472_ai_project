@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 
 TRAIN_MODEL = False
 
+
 def train_model_async(sentences, w, e, filename):
     print("STARTED TRAINING MODEL " + filename)
     model = Word2Vec(sentences, window=w, vector_size=e)
@@ -27,7 +28,6 @@ if __name__ == '__main__':
         return [nltk.word_tokenize(sentence) for sentence in book_sentences]
 
 
-
     def preprocess_books(directory):
         book_files = os.listdir(directory)
         print("Number of books found: {}".format(len(book_files)))
@@ -35,13 +35,11 @@ if __name__ == '__main__':
                 preprocess_book(os.path.join(directory, book_file))]
 
 
-
     def read_csv(file_path):
         with open(file_path, 'r', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             data = [row for row in reader]
         return data
-
 
 
     def train_models(w1, w2, e5, e6):
@@ -61,7 +59,6 @@ if __name__ == '__main__':
                 print(future.result())
 
 
-
     if TRAIN_MODEL:
         train_models(12, 6, 100, 300)
 
@@ -71,14 +68,12 @@ if __name__ == '__main__':
     model4 = Word2Vec.load("model4.model")
 
 
-
     def get_closest_synonym(question_word, answer_word, model):
         try:
             similarities = [(option, model.wv.similarity(question_word, option.lower())) for option in answer_word]
             return max(similarities, key=lambda x: x[1])[0]
         except KeyError:
             return None
-
 
 
     def process_synonym_test_data(data, cur_model):
@@ -115,7 +110,6 @@ if __name__ == '__main__':
             })
 
         return results, correct_count, valid_count
-
 
 
     def write_results_to_csv(results, file_name):
