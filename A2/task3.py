@@ -5,8 +5,9 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import nltk
 from gensim.models import Word2Vec
+from matplotlib import pyplot as plt
 
-TRAIN_MODEL = True
+TRAIN_MODEL = False
 
 def train_model_async(sentences, w, e, filename):
     print("STARTED TRAINING MODEL " + filename)
@@ -109,20 +110,42 @@ if __name__ == '__main__':
             for result in results:
                 writer.writerow(result)
 
-    # Test the models
+
+    def plot_graph_and_save(models, accuracies):
+        if not os.path.exists('stats'):
+            os.makedirs('stats')
+
+        plt.figure(figsize=(10, 5))
+        plt.bar(models, accuracies)
+        plt.xlabel('Models')
+        plt.ylabel('Accuracy')
+        plt.title('Models Accuracy Comparison')
+        plt.xticks(models)
+        plt.yticks([i * 0.1 for i in range(11)])
+
+        plt.savefig('stats/task3_models_accuracy_comparison.png')
+        plt.close()
+
+
     models = [model1, model2, model3, model4]
+    accuracies = []
+    model_names = []
     for i, model in enumerate(models, 1):
         synonym_data = read_csv('synonym.csv')
         results, correct_count, valid_count = process_synonym_test_data(synonym_data, model)
         accuracy = correct_count / valid_count if valid_count > 0 else 0
+        accuracies.append(accuracy)
+        model_names.append(f"model{i}")
         write_results_to_csv(results, f'model{i}-details.csv')
         with open('analysis.csv', 'a', newline='') as csvfile:
             csv_info = ['model_name', 'vocabulary_size', 'C', 'V', 'accuracy']
             writer = csv.DictWriter(csvfile, fieldnames=csv_info)
             writer.writerow({
-                'model_name': model,
+                'model_name': f'model{i}',
                 'vocabulary_size': 2000000,
                 'C': correct_count,
                 'V': valid_count,
                 'accuracy': accuracy
             })
+
+    plot_graph_and_save(model_names, accuracies)
