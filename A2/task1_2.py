@@ -9,9 +9,11 @@ from gensim.downloader import load
 
 if __name__ == '__main__':
     model_static_name = 'word2vec-google-news-300'
-    #model_static_name = 'glove-wiki-gigaword-200'
+    #model_static_name = 'glove-wiki-gigaword-300'
     #model_static_name = 'fasttext-wiki-news-subwords-300'
-    #model_static_name = 'English CoNLL17'
+    #model_static_name = 'English CoNLL17 300'
+    #model_static_name = 'glove-twitter-25'
+    #model_static_name = 'glove-twitter-100'
 
     ##English Conll17 downloaded from http://vectors.nlpl.eu/repository/
     #model = KeyedVectors.load_word2vec_format('model.bin', binary=True)
@@ -110,13 +112,22 @@ if __name__ == '__main__':
     # Read data from CSV file
     with open('analysis.csv', 'r') as file:
         reader = csv.reader(file)
-        next(reader)  # Skip header row
-        for row in reader:
+        rows = list(reader)
+        for index, row in enumerate(rows):
+            # Skip the last row
+            if index == len(rows) - 1:
+                break
+
             values = row[4].split(',')  # Split the string into values
             accuracy = float(values[0])  # Extract the accuracy as a float
             model_names.append(row[0])
             vocab_sizes.append(int(row[1]))
             accuracies.append(accuracy)
+
+    # Manually add a new bar for "quiz results"
+    model_names.append("Quiz Results")
+    vocab_sizes.append(0)  # You can set this to 0 or any value since it's not applicable for "Quiz Results"
+    accuracies.append(0.885)  # Set the accuracy to 88.5%
 
     # Set up positions for bars on x-axis
     x_positions = np.arange(len(model_names))
@@ -132,10 +143,11 @@ if __name__ == '__main__':
     plt.title('Accuracy for Different Models')
 
     # Add x-axis labels and rotate them for better readability
-    plt.xticks(x_positions, model_names, rotation=45, ha='right')
+    plt.xticks(x_positions, model_names, rotation=10, ha='right', fontsize=8)
 
     # Add a legend with model names and corresponding colors
     plt.legend(bars, model_names, loc='upper left')
 
+    plt.savefig('performance_comparison_graph.png', bbox_inches='tight')
     # Show the plot
     plt.show()
