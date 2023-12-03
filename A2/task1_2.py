@@ -2,6 +2,7 @@ import csv
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+from gensim.models import KeyedVectors
 
 from gensim.downloader import load
 
@@ -10,10 +11,13 @@ if __name__ == '__main__':
     model_static_name = 'word2vec-google-news-300'
     #model_static_name = 'glove-wiki-gigaword-200'
     #model_static_name = 'fasttext-wiki-news-subwords-300'
-    #model_static_name = 'English CoNLL17 corpus TO DO'
+    #model_static_name = 'English CoNLL17'
 
+    ##English Conll17 downloaded from http://vectors.nlpl.eu/repository/
+    #model = KeyedVectors.load_word2vec_format('model.bin', binary=True)
     model = load(model_static_name)
     print(f"Loaded model successfully")
+
 
 
     def get_closest_synonym(question_word, answer_word, model):
